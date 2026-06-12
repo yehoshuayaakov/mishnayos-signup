@@ -1,0 +1,209 @@
+"use client";
+
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { siteConfig } from "@/lib/config";
+
+type Tractate = {
+  id: number;
+  seder: string;
+  name: string;
+  chapters: number;
+  claimed_by: string | null;
+};
+
+const SEDER_ORDER = ["זרעים", "מועד", "נשים", "נזיקין", "קדשים", "טהרות"];
+
+export default function Home() {
+  const [tractates, setTractates] = useState<Tractate[] | null>(null);
+  const [loadError, setLoadError] = useState(false);
+  const [claimingId, setClaimingId] = useState<number | null>(null);
+  const [nameInput, setNameInput] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [message, setMessage] = useState<{ kind: "ok" | "err"; text: string } | null>(null);
+  const [photoOk, setPhotoOk] = useState(true);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const load = useCallback(async () => {
+    try {
+      const res = await fetch("/api/state", { cache: "no-store" });
+      if (!res.ok) throw new Error();
+      const json = await res.json();
+      setTractates(json.tractates);
+      setLoadError(false);
+    } catch {
+      setLoadError(true);
+    }
+  }, []);
+
+  useEffect(() => {
+    load();
+    const timer = setInterval(load, 30_000);
+    return () => clearInterval(timer);
+  }, [load]);
+
+  useEffect(() => {
+    if (claimingId !== null) inputRef.current?.focus();
+  }, [claimingId]);
+
+  async function submitClaim(id: number) {
+    const name = nameInput.trim();
+    if (!name || submitting) return;
+    setSubmitting(true);
+    setMessage(null);
+    try {
+      const res = await fetch("/api/claim", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id, name }),
+      });
+      if (res.ok) {
+        setMessage({ kind: "ok", text: "תודה רבה! המסכת נרשמה על שמכם. תזכו למצוות!" });
+        setClaimingId(null);
+        setNameInput("");
+      } else if (res.status === 409) {
+        setMessage({ kind: "err", text: "המסכת הזו נתפסה זה עתה על ידי מישהו אחר. נא לבחור מסכת אחרת." });
+        setClaimingId(null);
+        setNameInput("");
+      } else {
+        setMessage({ kind: "err", text: "אירעה שגיאה. נסו שוב בעוד רגע." });
+      }
+    } catch {
+      setMessage({ kind: "err", text: "אירעה שגיאה. בדקו את החיבור לאינטרנט ונסו שוב." });
+    } finally {
+      setSubmitting(false);
+      load();
+    }
+  }
+
+  const bySeder = useMemo(() => {
+    const groups = new Map<string, Tractate[]>();
+    for (const seder of SEDER_ORDER) groups.set(seder, []);
+    for (const t of tractates ?? []) {
+      if (!groups.has(t.seder)) groups.set(t.seder, []);
+      groups.get(t.seder)!.push(t);
+    }
+    return groups;
+  }, [tractates]);
+
+  const total = tractates?.length ?? 0;
+  const claimed = tractates?.filter((t) => t.claimed_by).length ?? 0;
+
+  return (
+    <main className="container">
+      <header className="memorial">
+        {photoOk && (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={siteConfig.photo}
+            alt=""
+            className="memorial-photo"
+            onError={() => setPhotoOk(false)}
+          />
+        )}
+        <h1>{siteConfig.inMemoryOf}</h1>
+        {siteConfig.subtitle && <p className="subtitle">{siteConfig.subtitle}</p>}
+        <p className="instructions">{siteConfig.instructions}</p>
+      </header>
+
+      {total > 0 && (
+        <section className="progress-card">
+          <div className="progress-text">
+            נלקחו <strong>{claimed}</strong> מתוך <strong>{total}</strong> מסכתות
+          </div>
+          <div className="progress-bar">
+            <div
+              className="progress-fill"
+              style={{ width: `${total ? (claimed / total) * 100 : 0}%` }}
+            />
+          </div>
+        </section>
+      )}
+
+      {message && (
+        <div className={`banner ${message.kind === "ok" ? "banner-ok" : "banner-err"}`}>
+          {message.text}
+        </div>
+      )}
+
+      {loadError && tractates === null && (
+        <div className="banner banner-err">לא ניתן לטעון את הנתונים. נסו לרענן את הדף.</div>
+      )}
+      {tractates === null && !loadError && <div className="loading">טוען…</div>}
+
+      {tractates !== null &&
+        SEDER_ORDER.filter((s) => (bySeder.get(s) ?? []).length > 0).map((seder) => (
+          <section key={seder} className="seder">
+            <h2>סדר {seder}</h2>
+            <table>
+              <thead>
+                <tr>
+                  <th className="col-name">מסכת</th>
+                  <th className="col-chapters">פרקים</th>
+                  <th className="col-learner">נלקח על ידי</th>
+                </tr>
+              </thead>
+              <tbody>
+                {bySeder.get(seder)!.map((t) => (
+                  <tr key={t.id} className={t.claimed_by ? "row-taken" : "row-open"}>
+                    <td className="col-name">{t.name}</td>
+                    <td className="col-chapters">{t.chapters}</td>
+                    <td className="col-learner">
+                      {t.claimed_by ? (
+                        <span className="learner">{t.claimed_by}</span>
+                      ) : claimingId === t.id ? (
+                        <form
+                          className="claim-form"
+                          onSubmit={(e) => {
+                            e.preventDefault();
+                            submitClaim(t.id);
+                          }}
+                        >
+                          <input
+                            ref={inputRef}
+                            type="text"
+                            value={nameInput}
+                            maxLength={60}
+                            placeholder="השם שלכם"
+                            onChange={(e) => setNameInput(e.target.value)}
+                            disabled={submitting}
+                          />
+                          <button type="submit" className="btn btn-confirm" disabled={submitting}>
+                            אישור
+                          </button>
+                          <button
+                            type="button"
+                            className="btn btn-cancel"
+                            disabled={submitting}
+                            onClick={() => {
+                              setClaimingId(null);
+                              setNameInput("");
+                            }}
+                          >
+                            ביטול
+                          </button>
+                        </form>
+                      ) : (
+                        <button
+                          type="button"
+                          className="btn btn-claim"
+                          onClick={() => {
+                            setClaimingId(t.id);
+                            setNameInput("");
+                            setMessage(null);
+                          }}
+                        >
+                          לחצו לקבלת המסכת
+                        </button>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </section>
+        ))}
+
+      <footer className="footer">תהא נשמתו צרורה בצרור החיים</footer>
+    </main>
+  );
+}
