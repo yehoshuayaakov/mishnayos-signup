@@ -15,7 +15,13 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "invalid_input" }, { status: 400 });
   }
 
-  const supabase = getSupabase();
+  let supabase;
+  try {
+    supabase = getSupabase();
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "unknown_error";
+    return NextResponse.json({ error: message }, { status: 500 });
+  }
   // The .is("claimed_by", null) filter makes this atomic: if two people try
   // to claim the same tractate at once, only one update matches.
   const { data, error } = await supabase
