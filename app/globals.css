@@ -254,6 +254,39 @@ body {
   padding: 4px 12px;
 }
 
+.taken-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.btn-edit {
+  background: transparent;
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 600;
+  padding: 4px 10px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+}
+
+.btn-edit:hover {
+  color: var(--navy-700);
+  border-color: var(--navy-600);
+  background: #f5f7fa;
+}
+
+.btn-release {
+  background: #8b3a3a;
+  color: #fff;
+}
+
+.edit-form input[type="password"] {
+  width: 120px;
+}
+
 /* ---------- Buttons & claim form ---------- */
 .btn {
   font-family: inherit;

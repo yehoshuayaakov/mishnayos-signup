@@ -36,13 +36,20 @@ Open http://localhost:3000.
 3. Before clicking Deploy, expand **Environment Variables** and add:
    - `SUPABASE_URL` = your project URL
    - `SUPABASE_SERVICE_ROLE_KEY` = your service_role key
+   - `ADMIN_PASSWORD` = a password organizers use to edit or release signups
 4. Click **Deploy**. You'll get a public URL like `https://mishnayot-signup.vercel.app` to share.
 
 To use a nicer URL, either rename the project in Vercel settings or add a custom domain (Vercel → Project → Settings → Domains).
 
 ## Managing signups (fixing typos, removing names)
 
-Open your Supabase dashboard → **Table Editor** → `tractates`. You can edit or clear the `claimed_by` value of any row directly. Changes appear on the site within ~30 seconds (the page refreshes itself).
+On the live site, each claimed tractate has an **עריכה** (Edit) button. Click it, enter the admin password, then either:
+- **שמירה** — fix the name
+- **שחרור** — release the tractate so someone else can take it
+
+The password is set via the `ADMIN_PASSWORD` environment variable in Vercel. Share it only with family/organizers. After entering it once, your browser remembers it for the session.
+
+You can also edit directly in Supabase → **Table Editor** → `tractates`.
 
 ## Notes
 
