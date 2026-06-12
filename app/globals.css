@@ -5,15 +5,24 @@
 }
 
 :root {
-  --blue: #1e3a5f;
-  --blue-light: #2e5984;
-  --gold: #b08d3f;
-  --bg: #f6f3ec;
+  --navy-900: #0f1f33;
+  --navy-800: #16293f;
+  --navy-700: #1e3a5f;
+  --navy-600: #2e5984;
+  --gold: #c2a14d;
+  --gold-soft: #e6d9b8;
+  --bg: #f4f5f7;
   --card: #ffffff;
-  --border: #e3ddd0;
-  --text: #2b2b2b;
-  --muted: #6b6b6b;
-  --green: #2e7d4f;
+  --border: #e6e8ec;
+  --text: #1d2733;
+  --muted: #69727e;
+  --green-700: #1f6b43;
+  --green-bg: #e6f4ec;
+  --green-border: #c4e5d1;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
 }
 
 body {
@@ -22,171 +31,239 @@ body {
   line-height: 1.6;
 }
 
-.container {
-  max-width: 760px;
-  margin: 0 auto;
-  padding: 24px 16px 48px;
-}
-
-/* Memorial header */
-.memorial {
-  background: var(--card);
-  border: 1px solid var(--border);
-  border-top: 5px solid var(--blue);
-  border-radius: 12px;
-  padding: 32px 24px;
+/* ---------- Hero ---------- */
+.hero {
+  background: linear-gradient(160deg, var(--navy-900) 0%, var(--navy-700) 100%);
+  color: #fff;
+  padding: 48px 16px 72px;
   text-align: center;
-  margin-bottom: 20px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
 }
 
-.memorial-photo {
-  width: 140px;
-  height: 140px;
+.hero-inner {
+  max-width: 720px;
+  margin: 0 auto;
+}
+
+.hero-photo {
+  width: 132px;
+  height: 132px;
   object-fit: cover;
   border-radius: 50%;
-  border: 4px solid var(--gold);
-  margin-bottom: 16px;
+  border: 3px solid var(--gold);
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.35);
+  margin-bottom: 20px;
 }
 
-.memorial h1 {
-  font-size: 1.7rem;
-  color: var(--blue);
+.hero h1 {
+  font-size: clamp(1.5rem, 4.5vw, 2.1rem);
   font-weight: 700;
+  letter-spacing: 0.01em;
 }
 
-.subtitle {
-  color: var(--muted);
-  margin-top: 6px;
+.hero-subtitle {
+  color: var(--gold-soft);
+  margin-top: 8px;
+  font-size: 1.02rem;
 }
 
-.instructions {
-  margin-top: 14px;
-  font-size: 1.05rem;
+.hero-instructions {
+  margin-top: 18px;
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 1rem;
 }
 
-/* Progress */
+/* ---------- Layout ---------- */
+.container {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 0 16px 56px;
+}
+
+/* ---------- Progress (overlaps hero) ---------- */
 .progress-card {
   background: var(--card);
   border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 16px 20px;
-  margin-bottom: 20px;
+  border-radius: 16px;
+  padding: 18px 22px;
+  margin-top: -36px;
+  margin-bottom: 24px;
+  box-shadow: 0 10px 30px rgba(15, 31, 51, 0.12);
 }
 
-.progress-text {
-  margin-bottom: 8px;
+.progress-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 10px;
+}
+
+.progress-pct {
+  color: var(--muted);
+  font-size: 0.92rem;
+  font-weight: 600;
 }
 
 .progress-bar {
-  height: 12px;
-  background: #ece7db;
-  border-radius: 6px;
+  height: 8px;
+  background: #edeff2;
+  border-radius: 999px;
   overflow: hidden;
 }
 
 .progress-fill {
   height: 100%;
-  background: linear-gradient(90deg, var(--gold), #d4b566);
-  border-radius: 6px;
-  transition: width 0.4s ease;
+  background: linear-gradient(90deg, var(--gold), #d8bd72);
+  border-radius: 999px;
+  transition: width 0.5s ease;
 }
 
-/* Banners */
+/* ---------- Banners ---------- */
 .banner {
-  border-radius: 10px;
+  border-radius: 12px;
   padding: 12px 16px;
   margin-bottom: 16px;
   font-weight: 500;
+  font-size: 0.97rem;
 }
 
 .banner-ok {
-  background: #e7f3ea;
-  color: var(--green);
-  border: 1px solid #bfe0c8;
+  background: var(--green-bg);
+  color: var(--green-700);
+  border: 1px solid var(--green-border);
 }
 
 .banner-err {
-  background: #fdecec;
-  color: #a33;
-  border: 1px solid #f0c5c5;
+  background: #fdeeee;
+  color: #9c3535;
+  border: 1px solid #f2cccc;
 }
 
 .loading {
   text-align: center;
   color: var(--muted);
-  padding: 40px 0;
+  padding: 48px 0;
 }
 
-/* Seder sections */
-.seder {
-  margin-bottom: 24px;
-}
-
-.seder h2 {
-  color: var(--blue);
-  font-size: 1.2rem;
-  margin-bottom: 8px;
-  padding-right: 4px;
-}
-
-table {
-  width: 100%;
-  border-collapse: collapse;
+/* ---------- Seder cards ---------- */
+.seder-card {
   background: var(--card);
   border: 1px solid var(--border);
-  border-radius: 12px;
+  border-radius: 16px;
+  margin-bottom: 18px;
+  box-shadow: 0 2px 8px rgba(15, 31, 51, 0.05);
   overflow: hidden;
-  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.04);
 }
 
-th {
-  background: var(--blue);
-  color: #fff;
+.seder-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--border);
+  background: linear-gradient(0deg, rgba(194, 161, 77, 0.06), rgba(194, 161, 77, 0.06)), var(--card);
+}
+
+.seder-head h2 {
+  font-size: 1.08rem;
+  color: var(--navy-700);
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.seder-head h2::before {
+  content: "";
+  display: inline-block;
+  width: 4px;
+  height: 18px;
+  border-radius: 2px;
+  background: var(--gold);
+}
+
+.seder-count {
+  font-size: 0.85rem;
   font-weight: 600;
-  text-align: right;
-  padding: 10px 14px;
-  font-size: 0.95rem;
+  color: var(--muted);
+  background: #f0f1f4;
+  border-radius: 999px;
+  padding: 2px 10px;
+  direction: ltr;
 }
 
-td {
-  padding: 10px 14px;
+/* ---------- Tractate rows ---------- */
+.tractate-list {
+  list-style: none;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 11px 20px;
+  transition: background 0.12s ease;
+}
+
+.row + .row {
   border-top: 1px solid var(--border);
-  vertical-align: middle;
 }
 
-.col-chapters {
-  width: 70px;
-  text-align: center;
-}
-
-th.col-chapters {
-  text-align: center;
-}
-
-.col-name {
-  font-weight: 600;
-  white-space: nowrap;
+.row:hover {
+  background: #fafbfc;
 }
 
 .row-taken {
-  background: #fbfaf6;
+  background: #fbfaf7;
 }
 
-.learner {
-  color: var(--green);
+.t-info {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  min-width: 0;
+}
+
+.t-name {
   font-weight: 600;
+  font-size: 1.02rem;
+  white-space: nowrap;
 }
 
-/* Buttons and claim form */
+.t-chapters {
+  color: var(--muted);
+  font-size: 0.8rem;
+  white-space: nowrap;
+}
+
+.t-status {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.chip-taken {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--green-bg);
+  border: 1px solid var(--green-border);
+  color: var(--green-700);
+  font-weight: 600;
+  font-size: 0.92rem;
+  border-radius: 999px;
+  padding: 4px 12px;
+}
+
+/* ---------- Buttons & claim form ---------- */
 .btn {
   font-family: inherit;
-  font-size: 0.92rem;
+  font-size: 0.9rem;
+  font-weight: 600;
   border: none;
-  border-radius: 8px;
-  padding: 7px 14px;
+  border-radius: 999px;
+  padding: 7px 16px;
   cursor: pointer;
-  transition: background 0.15s ease;
+  transition: background 0.15s ease, transform 0.1s ease, box-shadow 0.15s ease;
 }
 
 .btn:disabled {
@@ -195,21 +272,24 @@ th.col-chapters {
 }
 
 .btn-claim {
-  background: var(--blue);
+  background: var(--navy-700);
   color: #fff;
+  box-shadow: 0 1px 3px rgba(15, 31, 51, 0.25);
 }
 
 .btn-claim:hover {
-  background: var(--blue-light);
+  background: var(--navy-600);
+  transform: translateY(-1px);
+  box-shadow: 0 3px 8px rgba(15, 31, 51, 0.25);
 }
 
 .btn-confirm {
-  background: var(--green);
+  background: var(--green-700);
   color: #fff;
 }
 
 .btn-cancel {
-  background: #e8e4da;
+  background: #eceef1;
   color: var(--text);
 }
 
@@ -218,44 +298,52 @@ th.col-chapters {
   gap: 6px;
   flex-wrap: wrap;
   align-items: center;
+  justify-content: flex-end;
 }
 
 .claim-form input {
   font-family: inherit;
   font-size: 0.95rem;
-  padding: 7px 10px;
-  border: 1px solid var(--border);
-  border-radius: 8px;
+  padding: 7px 12px;
+  border: 1.5px solid var(--border);
+  border-radius: 999px;
   width: 160px;
+  background: #fff;
 }
 
 .claim-form input:focus {
-  outline: 2px solid var(--blue-light);
-  border-color: transparent;
+  outline: none;
+  border-color: var(--navy-600);
+  box-shadow: 0 0 0 3px rgba(46, 89, 132, 0.15);
 }
 
 .footer {
   text-align: center;
   color: var(--muted);
-  margin-top: 32px;
+  margin-top: 36px;
   font-size: 0.95rem;
 }
 
+/* ---------- Mobile ---------- */
 @media (max-width: 520px) {
-  .memorial h1 {
-    font-size: 1.35rem;
+  .hero {
+    padding: 36px 16px 64px;
   }
 
-  th,
-  td {
-    padding: 8px 8px;
+  .row {
+    padding: 10px 14px;
   }
 
-  .col-chapters {
-    width: 52px;
+  .t-info {
+    flex-direction: column;
+    gap: 0;
   }
 
   .claim-form input {
     width: 120px;
+  }
+
+  .seder-head {
+    padding: 12px 14px;
   }
 }

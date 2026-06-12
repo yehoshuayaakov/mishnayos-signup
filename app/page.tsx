@@ -87,123 +87,142 @@ export default function Home() {
 
   const total = tractates?.length ?? 0;
   const claimed = tractates?.filter((t) => t.claimed_by).length ?? 0;
+  const pct = total ? Math.round((claimed / total) * 100) : 0;
 
   return (
-    <main className="container">
-      <header className="memorial">
-        {photoOk && (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={siteConfig.photo}
-            alt=""
-            className="memorial-photo"
-            onError={() => setPhotoOk(false)}
-          />
-        )}
-        <h1>{siteConfig.inMemoryOf}</h1>
-        {siteConfig.subtitle && <p className="subtitle">{siteConfig.subtitle}</p>}
-        <p className="instructions">{siteConfig.instructions}</p>
-      </header>
-
-      {total > 0 && (
-        <section className="progress-card">
-          <div className="progress-text">
-            נלקחו <strong>{claimed}</strong> מתוך <strong>{total}</strong> מסכתות
-          </div>
-          <div className="progress-bar">
-            <div
-              className="progress-fill"
-              style={{ width: `${total ? (claimed / total) * 100 : 0}%` }}
+    <>
+      <div className="hero">
+        <div className="hero-inner">
+          {photoOk && (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={siteConfig.photo}
+              alt=""
+              className="hero-photo"
+              onError={() => setPhotoOk(false)}
             />
-          </div>
-        </section>
-      )}
-
-      {message && (
-        <div className={`banner ${message.kind === "ok" ? "banner-ok" : "banner-err"}`}>
-          {message.text}
+          )}
+          <h1>{siteConfig.inMemoryOf}</h1>
+          {siteConfig.subtitle && <p className="hero-subtitle">{siteConfig.subtitle}</p>}
+          <p className="hero-instructions">{siteConfig.instructions}</p>
         </div>
-      )}
+      </div>
 
-      {loadError && tractates === null && (
-        <div className="banner banner-err">לא ניתן לטעון את הנתונים. נסו לרענן את הדף.</div>
-      )}
-      {tractates === null && !loadError && <div className="loading">טוען…</div>}
+      <main className="container">
+        {total > 0 && (
+          <section className="progress-card">
+            <div className="progress-row">
+              <span className="progress-text">
+                נלקחו <strong>{claimed}</strong> מתוך <strong>{total}</strong> מסכתות
+              </span>
+              <span className="progress-pct">{pct}%</span>
+            </div>
+            <div className="progress-bar">
+              <div className="progress-fill" style={{ width: `${pct}%` }} />
+            </div>
+          </section>
+        )}
 
-      {tractates !== null &&
-        SEDER_ORDER.filter((s) => (bySeder.get(s) ?? []).length > 0).map((seder) => (
-          <section key={seder} className="seder">
-            <h2>סדר {seder}</h2>
-            <table>
-              <thead>
-                <tr>
-                  <th className="col-name">מסכת</th>
-                  <th className="col-chapters">פרקים</th>
-                  <th className="col-learner">נלקח על ידי</th>
-                </tr>
-              </thead>
-              <tbody>
-                {bySeder.get(seder)!.map((t) => (
-                  <tr key={t.id} className={t.claimed_by ? "row-taken" : "row-open"}>
-                    <td className="col-name">{t.name}</td>
-                    <td className="col-chapters">{t.chapters}</td>
-                    <td className="col-learner">
-                      {t.claimed_by ? (
-                        <span className="learner">{t.claimed_by}</span>
-                      ) : claimingId === t.id ? (
-                        <form
-                          className="claim-form"
-                          onSubmit={(e) => {
-                            e.preventDefault();
-                            submitClaim(t.id);
-                          }}
-                        >
-                          <input
-                            ref={inputRef}
-                            type="text"
-                            value={nameInput}
-                            maxLength={60}
-                            placeholder="השם שלכם"
-                            onChange={(e) => setNameInput(e.target.value)}
-                            disabled={submitting}
-                          />
-                          <button type="submit" className="btn btn-confirm" disabled={submitting}>
-                            אישור
-                          </button>
-                          <button
-                            type="button"
-                            className="btn btn-cancel"
-                            disabled={submitting}
-                            onClick={() => {
-                              setClaimingId(null);
-                              setNameInput("");
+        {message && (
+          <div className={`banner ${message.kind === "ok" ? "banner-ok" : "banner-err"}`}>
+            {message.text}
+          </div>
+        )}
+
+        {loadError && tractates === null && (
+          <div className="banner banner-err">לא ניתן לטעון את הנתונים. נסו לרענן את הדף.</div>
+        )}
+        {tractates === null && !loadError && <div className="loading">טוען…</div>}
+
+        {tractates !== null &&
+          SEDER_ORDER.filter((s) => (bySeder.get(s) ?? []).length > 0).map((seder) => {
+            const items = bySeder.get(seder)!;
+            const taken = items.filter((t) => t.claimed_by).length;
+            return (
+              <section key={seder} className="seder-card">
+                <div className="seder-head">
+                  <h2>סדר {seder}</h2>
+                  <span className="seder-count">
+                    {taken}/{items.length}
+                  </span>
+                </div>
+                <ul className="tractate-list">
+                  {items.map((t) => (
+                    <li key={t.id} className={t.claimed_by ? "row row-taken" : "row"}>
+                      <div className="t-info">
+                        <span className="t-name">{t.name}</span>
+                        <span className="t-chapters">{t.chapters} פרקים</span>
+                      </div>
+                      <div className="t-status">
+                        {t.claimed_by ? (
+                          <span className="chip-taken">
+                            <svg viewBox="0 0 16 16" width="13" height="13" aria-hidden="true">
+                              <path
+                                d="M3 8.5 6.2 11.7 13 4.5"
+                                fill="none"
+                                stroke="currentColor"
+                                strokeWidth="2.2"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                              />
+                            </svg>
+                            {t.claimed_by}
+                          </span>
+                        ) : claimingId === t.id ? (
+                          <form
+                            className="claim-form"
+                            onSubmit={(e) => {
+                              e.preventDefault();
+                              submitClaim(t.id);
                             }}
                           >
-                            ביטול
+                            <input
+                              ref={inputRef}
+                              type="text"
+                              value={nameInput}
+                              maxLength={60}
+                              placeholder="השם שלכם"
+                              onChange={(e) => setNameInput(e.target.value)}
+                              disabled={submitting}
+                            />
+                            <button type="submit" className="btn btn-confirm" disabled={submitting}>
+                              אישור
+                            </button>
+                            <button
+                              type="button"
+                              className="btn btn-cancel"
+                              disabled={submitting}
+                              onClick={() => {
+                                setClaimingId(null);
+                                setNameInput("");
+                              }}
+                            >
+                              ביטול
+                            </button>
+                          </form>
+                        ) : (
+                          <button
+                            type="button"
+                            className="btn btn-claim"
+                            onClick={() => {
+                              setClaimingId(t.id);
+                              setNameInput("");
+                              setMessage(null);
+                            }}
+                          >
+                            לקבלת המסכת
                           </button>
-                        </form>
-                      ) : (
-                        <button
-                          type="button"
-                          className="btn btn-claim"
-                          onClick={() => {
-                            setClaimingId(t.id);
-                            setNameInput("");
-                            setMessage(null);
-                          }}
-                        >
-                          לחצו לקבלת המסכת
-                        </button>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </section>
-        ))}
+                        )}
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            );
+          })}
 
-      <footer className="footer">תהא נשמתו צרורה בצרור החיים</footer>
-    </main>
+        <footer className="footer">תהא נשמתו צרורה בצרור החיים</footer>
+      </main>
+    </>
   );
 }
