@@ -1,6 +1,6 @@
 # Mishnayot Signup (חלוקת משניות)
 
-A small website where people sign up to learn tractates of Mishnah in memory of someone who passed away. Shows all 63 tractates grouped by Seder, who has taken each one, and lets visitors claim an open tractate by entering their name — no login required.
+A small website where people sign up to learn tractates of Mishnah in memory of someone who passed away. Shows all 64 tractate slots grouped by Seder, who has taken each one, and lets visitors claim an open tractate by entering their name — no login required.
 
 Built with Next.js (App Router) + Supabase (free Postgres database), designed to deploy on Vercel's free tier.
 
@@ -12,7 +12,7 @@ Built with Next.js (App Router) + Supabase (free Postgres database), designed to
 ## 2. Set up the database (Supabase, ~5 minutes)
 
 1. Go to [supabase.com](https://supabase.com), sign in (GitHub login works), and create a new project. Any region; choose a strong database password (you won't need it day-to-day).
-2. In the project dashboard, open **SQL Editor → New query**, paste the entire contents of `supabase/schema.sql`, and click **Run**. This creates and seeds the table with all 63 tractates.
+2. In the project dashboard, open **SQL Editor → New query**, paste the entire contents of `supabase/schema.sql`, and click **Run**. This creates and seeds the table with all 64 tractate slots.
 3. Open **Project Settings → API** and copy two values:
    - **Project URL** (looks like `https://abcdefgh.supabase.co`)
    - **service_role key** (under "Project API keys" — keep this secret)

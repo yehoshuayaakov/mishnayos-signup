@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { siteConfig } from "@/lib/config";
+import { progressFillStyle } from "@/lib/progress";
 
 type Tractate = {
   id: number;
@@ -188,7 +189,7 @@ export default function Home() {
               <span className="progress-pct">{pct}%</span>
             </div>
             <div className="progress-bar">
-              <div className="progress-fill" style={{ width: `${pct}%` }} />
+              <div className="progress-fill" style={progressFillStyle(pct)} />
             </div>
           </section>
         )}

@@ -108,13 +108,15 @@ body {
   background: #edeff2;
   border-radius: 999px;
   overflow: hidden;
+  display: flex;
+  direction: rtl;
 }
 
 .progress-fill {
   height: 100%;
-  background: linear-gradient(90deg, var(--gold), #d8bd72);
   border-radius: 999px;
-  transition: width 0.5s ease;
+  transition: width 0.5s ease, background 0.5s ease;
+  flex-shrink: 0;
 }
 
 /* ---------- Banners ---------- */

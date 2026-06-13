@@ -9,7 +9,7 @@ export async function GET() {
     const { data, error } = await supabase
       .from("tractates")
       .select("id, seder, name, chapters, claimed_by")
-      .order("id");
+      .order("sort_order");
 
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 500 });
