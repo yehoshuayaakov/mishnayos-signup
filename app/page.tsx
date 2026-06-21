@@ -169,6 +169,7 @@ export default function Home() {
             <img
               src={siteConfig.photo}
               alt=""
+              aria-label="photo of the niftar"
               className="hero-photo"
               onError={() => setPhotoOk(false)}
             />

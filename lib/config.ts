@@ -8,7 +8,7 @@ export const siteConfig = {
 
   // Optional secondary line (date of passing, date of the siyum, etc.).
   // Set to "" to hide it.
-  subtitle: "נלב\"ע י\"ד אלול תשפ\"א",
+  subtitle: "נלב\"ע י\"ד תמוז תשפ\"א",
 
   // Short instruction shown above the table.
   instructions: "לחצו על מסכת פנויה כדי לקבל אותה על עצמכם",
