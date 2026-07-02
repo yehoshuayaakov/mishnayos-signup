@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <rect width="64" height="64" rx="12" fill="#0f1f33"/>
+  <!-- candle body -->
+  <rect x="25" y="34" width="14" height="22" rx="3" fill="#f4ecd6"/>
+  <!-- wick -->
+  <rect x="31" y="29" width="2" height="6" rx="1" fill="#4a3524"/>
+  <!-- flame -->
+  <path d="M32 12
+           C38 20 40 25 40 30
+           C40 35.5 36.4 39 32 39
+           C27.6 39 24 35.5 24 30
+           C24 25 26 20 32 12 Z"
+        fill="#f6a12e"/>
+  <!-- inner flame -->
+  <path d="M32 21
+           C35 26 36 29 36 32
+           C36 35 34.2 37 32 37
+           C29.8 37 28 35 28 32
+           C28 29 29 26 32 21 Z"
+        fill="#ffe9a8"/>
+</svg>
