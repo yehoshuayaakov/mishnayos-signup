@@ -1,91 +1,158 @@
--- Run this once in the Supabase SQL Editor (dashboard -> SQL Editor -> New query -> paste -> Run).
--- Creates the tractates table and seeds all 64 tractate slots of the Mishnah (Kelim split in two).
+-- Multi-campaign schema. Run once in the Supabase SQL Editor
+-- (dashboard -> SQL Editor -> New query -> paste -> Run).
+--
+-- WARNING: this DROPs and recreates the tables. If you have existing signup data,
+-- take a backup first (see scripts/backup-tractates.mjs or supabase/backups/README.md).
+--
+-- One database hosts many campaigns. Each campaign has its own 64 tractate slots.
+-- Adding a new campaign later is a single call: select create_campaign(...);
 
-create table if not exists tractates (
-  id integer primary key,
+drop function if exists create_campaign(text, text, text, text, text, text);
+drop table if exists tractates;
+drop table if exists campaigns;
+
+-- One row per person/campaign being learned for.
+create table campaigns (
+  id bigint generated always as identity primary key,
+  slug text not null unique,
+  title text not null,
+  in_memory_of text not null,
+  subtitle text not null default '',
+  instructions text not null default '',
+  photo_url text not null default '',
+  is_active boolean not null default true,
+  admin_token text,            -- reserved for future per-campaign admin links (unused for now)
+  created_at timestamptz not null default now()
+);
+
+-- 64 tractate slots per campaign.
+create table tractates (
+  id bigint generated always as identity primary key,
+  campaign_id bigint not null references campaigns(id) on delete cascade,
   seder text not null,
-  name text not null,
+  name text not null,          -- Hebrew name shown in the UI
+  name_en text not null default '', -- English (Ashkenazi transliteration), for future use
   chapters integer not null,
   sort_order integer not null,
   claimed_by text,
   claimed_at timestamptz
 );
 
--- All database access goes through server-side API routes with the service role key.
-alter table tractates disable row level security;
+create index tractates_campaign_sort_idx on tractates (campaign_id, sort_order);
 
+-- All access goes through server-side API routes using the service_role key,
+-- which BYPASSES row level security. We enable RLS with NO policies so the
+-- public anon/authenticated keys (never used by this app) get zero access,
+-- while the server (service_role) keeps full access.
+alter table campaigns enable row level security;
+alter table tractates enable row level security;
+
+grant all on table public.campaigns to service_role;
+grant all on table public.campaigns to postgres;
 grant all on table public.tractates to service_role;
 grant all on table public.tractates to postgres;
 
-insert into tractates (id, seder, name, chapters, sort_order) values
-  -- סדר זרעים
-  (1,  'זרעים', 'ברכות', 9, 1),
-  (2,  'זרעים', 'פאה', 8, 2),
-  (3,  'זרעים', 'דמאי', 7, 3),
-  (4,  'זרעים', 'כלאים', 9, 4),
-  (5,  'זרעים', 'שביעית', 10, 5),
-  (6,  'זרעים', 'תרומות', 11, 6),
-  (7,  'זרעים', 'מעשרות', 5, 7),
-  (8,  'זרעים', 'מעשר שני', 5, 8),
-  (9,  'זרעים', 'חלה', 4, 9),
-  (10, 'זרעים', 'ערלה', 3, 10),
-  (11, 'זרעים', 'ביכורים', 3, 11),
-  -- סדר מועד
-  (12, 'מועד', 'שבת', 24, 12),
-  (13, 'מועד', 'עירובין', 10, 13),
-  (14, 'מועד', 'פסחים', 10, 14),
-  (15, 'מועד', 'שקלים', 8, 15),
-  (16, 'מועד', 'יומא', 8, 16),
-  (17, 'מועד', 'סוכה', 5, 17),
-  (18, 'מועד', 'ביצה', 5, 18),
-  (19, 'מועד', 'ראש השנה', 4, 19),
-  (20, 'מועד', 'תענית', 4, 20),
-  (21, 'מועד', 'מגילה', 4, 21),
-  (22, 'מועד', 'מועד קטן', 3, 22),
-  (23, 'מועד', 'חגיגה', 3, 23),
-  -- סדר נשים
-  (24, 'נשים', 'יבמות', 16, 24),
-  (25, 'נשים', 'כתובות', 13, 25),
-  (26, 'נשים', 'נדרים', 11, 26),
-  (27, 'נשים', 'נזיר', 9, 27),
-  (28, 'נשים', 'סוטה', 9, 28),
-  (29, 'נשים', 'גיטין', 9, 29),
-  (30, 'נשים', 'קידושין', 4, 30),
-  -- סדר נזיקין
-  (31, 'נזיקין', 'בבא קמא', 10, 31),
-  (32, 'נזיקין', 'בבא מציעא', 10, 32),
-  (33, 'נזיקין', 'בבא בתרא', 10, 33),
-  (34, 'נזיקין', 'סנהדרין', 11, 34),
-  (35, 'נזיקין', 'מכות', 3, 35),
-  (36, 'נזיקין', 'שבועות', 8, 36),
-  (37, 'נזיקין', 'עדויות', 8, 37),
-  (38, 'נזיקין', 'עבודה זרה', 5, 38),
-  (39, 'נזיקין', 'אבות', 6, 39),
-  (40, 'נזיקין', 'הוריות', 3, 40),
-  -- סדר קדשים
-  (41, 'קדשים', 'זבחים', 14, 41),
-  (42, 'קדשים', 'מנחות', 13, 42),
-  (43, 'קדשים', 'חולין', 12, 43),
-  (44, 'קדשים', 'בכורות', 9, 44),
-  (45, 'קדשים', 'ערכין', 9, 45),
-  (46, 'קדשים', 'תמורה', 7, 46),
-  (47, 'קדשים', 'כריתות', 6, 47),
-  (48, 'קדשים', 'מעילה', 6, 48),
-  (49, 'קדשים', 'תמיד', 7, 49),
-  (50, 'קדשים', 'מדות', 5, 50),
-  (51, 'קדשים', 'קינים', 3, 51),
-  -- סדר טהרות (id 64 sits after id 52 via sort_order 53)
-  (52, 'טהרות', 'כלים א-ט"ו', 15, 52),
-  (64, 'טהרות', 'כלים ט"ז-ל', 15, 53),
-  (53, 'טהרות', 'אהלות', 18, 54),
-  (54, 'טהרות', 'נגעים', 14, 55),
-  (55, 'טהרות', 'פרה', 12, 56),
-  (56, 'טהרות', 'טהרות', 10, 57),
-  (57, 'טהרות', 'מקואות', 10, 58),
-  (58, 'טהרות', 'נדה', 10, 59),
-  (59, 'טהרות', 'מכשירין', 6, 60),
-  (60, 'טהרות', 'זבים', 5, 61),
-  (61, 'טהרות', 'טבול יום', 4, 62),
-  (62, 'טהרות', 'ידים', 4, 63),
-  (63, 'טהרות', 'עוקצין', 3, 64)
-on conflict (id) do nothing;
+-- Creates a campaign and seeds all 64 tractate slots (Kelim split in two).
+-- Returns the new campaign id.
+create or replace function create_campaign(
+  p_slug text,
+  p_title text,
+  p_in_memory_of text,
+  p_subtitle text,
+  p_instructions text,
+  p_photo_url text
+) returns bigint
+language plpgsql
+as $$
+declare
+  new_id bigint;
+begin
+  insert into campaigns (slug, title, in_memory_of, subtitle, instructions, photo_url)
+  values (p_slug, p_title, p_in_memory_of, p_subtitle, p_instructions, p_photo_url)
+  returning id into new_id;
+
+  insert into tractates (campaign_id, seder, name, name_en, chapters, sort_order) values
+    -- סדר זרעים
+    (new_id, 'זרעים', 'ברכות', 'Berachos', 9, 1),
+    (new_id, 'זרעים', 'פאה', 'Peah', 8, 2),
+    (new_id, 'זרעים', 'דמאי', 'Demai', 7, 3),
+    (new_id, 'זרעים', 'כלאים', 'Kilayim', 9, 4),
+    (new_id, 'זרעים', 'שביעית', 'Sheviis', 10, 5),
+    (new_id, 'זרעים', 'תרומות', 'Terumos', 11, 6),
+    (new_id, 'זרעים', 'מעשרות', 'Maasros', 5, 7),
+    (new_id, 'זרעים', 'מעשר שני', 'Maaser Sheni', 5, 8),
+    (new_id, 'זרעים', 'חלה', 'Challah', 4, 9),
+    (new_id, 'זרעים', 'ערלה', 'Orlah', 3, 10),
+    (new_id, 'זרעים', 'ביכורים', 'Bikkurim', 3, 11),
+    -- סדר מועד
+    (new_id, 'מועד', 'שבת', 'Shabbos', 24, 12),
+    (new_id, 'מועד', 'עירובין', 'Eruvin', 10, 13),
+    (new_id, 'מועד', 'פסחים', 'Pesachim', 10, 14),
+    (new_id, 'מועד', 'שקלים', 'Shekalim', 8, 15),
+    (new_id, 'מועד', 'יומא', 'Yoma', 8, 16),
+    (new_id, 'מועד', 'סוכה', 'Sukkah', 5, 17),
+    (new_id, 'מועד', 'ביצה', 'Beitzah', 5, 18),
+    (new_id, 'מועד', 'ראש השנה', 'Rosh Hashanah', 4, 19),
+    (new_id, 'מועד', 'תענית', 'Taanis', 4, 20),
+    (new_id, 'מועד', 'מגילה', 'Megillah', 4, 21),
+    (new_id, 'מועד', 'מועד קטן', 'Moed Katan', 3, 22),
+    (new_id, 'מועד', 'חגיגה', 'Chagigah', 3, 23),
+    -- סדר נשים
+    (new_id, 'נשים', 'יבמות', 'Yevamos', 16, 24),
+    (new_id, 'נשים', 'כתובות', 'Kesubos', 13, 25),
+    (new_id, 'נשים', 'נדרים', 'Nedarim', 11, 26),
+    (new_id, 'נשים', 'נזיר', 'Nazir', 9, 27),
+    (new_id, 'נשים', 'סוטה', 'Sotah', 9, 28),
+    (new_id, 'נשים', 'גיטין', 'Gittin', 9, 29),
+    (new_id, 'נשים', 'קידושין', 'Kiddushin', 4, 30),
+    -- סדר נזיקין
+    (new_id, 'נזיקין', 'בבא קמא', 'Bava Kamma', 10, 31),
+    (new_id, 'נזיקין', 'בבא מציעא', 'Bava Metzia', 10, 32),
+    (new_id, 'נזיקין', 'בבא בתרא', 'Bava Basra', 10, 33),
+    (new_id, 'נזיקין', 'סנהדרין', 'Sanhedrin', 11, 34),
+    (new_id, 'נזיקין', 'מכות', 'Makkos', 3, 35),
+    (new_id, 'נזיקין', 'שבועות', 'Shevuos', 8, 36),
+    (new_id, 'נזיקין', 'עדויות', 'Eduyos', 8, 37),
+    (new_id, 'נזיקין', 'עבודה זרה', 'Avodah Zarah', 5, 38),
+    (new_id, 'נזיקין', 'אבות', 'Avos', 6, 39),
+    (new_id, 'נזיקין', 'הוריות', 'Horayos', 3, 40),
+    -- סדר קדשים
+    (new_id, 'קדשים', 'זבחים', 'Zevachim', 14, 41),
+    (new_id, 'קדשים', 'מנחות', 'Menachos', 13, 42),
+    (new_id, 'קדשים', 'חולין', 'Chullin', 12, 43),
+    (new_id, 'קדשים', 'בכורות', 'Bechoros', 9, 44),
+    (new_id, 'קדשים', 'ערכין', 'Erchin', 9, 45),
+    (new_id, 'קדשים', 'תמורה', 'Temurah', 7, 46),
+    (new_id, 'קדשים', 'כריתות', 'Kereisos', 6, 47),
+    (new_id, 'קדשים', 'מעילה', 'Meilah', 6, 48),
+    (new_id, 'קדשים', 'תמיד', 'Tamid', 7, 49),
+    (new_id, 'קדשים', 'מדות', 'Middos', 5, 50),
+    (new_id, 'קדשים', 'קינים', 'Kinnim', 3, 51),
+    -- סדר טהרות (Kelim split into two adjacent slots)
+    (new_id, 'טהרות', 'כלים א-ט"ו', 'Keilim 1-15', 15, 52),
+    (new_id, 'טהרות', 'כלים ט"ז-ל', 'Keilim 16-30', 15, 53),
+    (new_id, 'טהרות', 'אהלות', 'Oholos', 18, 54),
+    (new_id, 'טהרות', 'נגעים', 'Negaim', 14, 55),
+    (new_id, 'טהרות', 'פרה', 'Parah', 12, 56),
+    (new_id, 'טהרות', 'טהרות', 'Taharos', 10, 57),
+    (new_id, 'טהרות', 'מקואות', 'Mikvaos', 10, 58),
+    (new_id, 'טהרות', 'נדה', 'Niddah', 10, 59),
+    (new_id, 'טהרות', 'מכשירין', 'Machshirin', 6, 60),
+    (new_id, 'טהרות', 'זבים', 'Zavim', 5, 61),
+    (new_id, 'טהרות', 'טבול יום', 'Tevul Yom', 4, 62),
+    (new_id, 'טהרות', 'ידים', 'Yadayim', 4, 63),
+    (new_id, 'טהרות', 'עוקצין', 'Uktzin', 3, 64);
+
+  return new_id;
+end;
+$$;
+
+-- Seed the first campaign. No photo yet -> the UI shows the candle fallback.
+select create_campaign(
+  'nemirof',
+  'חלוקת משניות',
+  'ר'' חיים רפאל יצחק הערשל בן ר'' דוד נעמירוף ז"ל',
+  'נלב"ע כ"ז סיון תשפ"ו',
+  'לחצו על מסכת פנויה כדי לקבל אותה על עצמכם',
+  ''
+);

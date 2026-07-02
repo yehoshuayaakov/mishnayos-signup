@@ -1,13 +1,12 @@
 import type { Metadata } from "next";
 import { Heebo } from "next/font/google";
-import { siteConfig } from "@/lib/config";
 import "./globals.css";
 
 const heebo = Heebo({ subsets: ["hebrew", "latin"] });
 
 export const metadata: Metadata = {
-  title: siteConfig.title,
-  description: siteConfig.inMemoryOf,
+  title: "חלוקת משניות",
+  description: "חלוקת משניות לעילוי נשמת",
 };
 
 export default function RootLayout({

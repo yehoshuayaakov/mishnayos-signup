@@ -1,10 +1,16 @@
 import { NextResponse } from "next/server";
 import { verifyAdminPassword } from "@/lib/admin";
 import { getSupabase } from "@/lib/supabase";
+import { findCampaignId } from "@/lib/campaign";
 
 type EditAction = "rename" | "release";
 
-export async function POST(req: Request) {
+export async function POST(
+  req: Request,
+  context: { params: Promise<{ slug: string }> }
+) {
+  const { slug } = await context.params;
+
   let body: { id?: unknown; action?: unknown; name?: unknown; password?: unknown };
   try {
     body = await req.json();
@@ -35,11 +41,17 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: message }, { status: 500 });
   }
 
+  const campaignId = await findCampaignId(supabase, slug);
+  if (campaignId === null) {
+    return NextResponse.json({ error: "campaign_not_found" }, { status: 404 });
+  }
+
   if (action === "release") {
     const { data, error } = await supabase
       .from("tractates")
       .update({ claimed_by: null, claimed_at: null })
       .eq("id", id as number)
+      .eq("campaign_id", campaignId)
       .not("claimed_by", "is", null)
       .select("id");
 
@@ -52,6 +64,7 @@ export async function POST(req: Request) {
     .from("tractates")
     .update({ claimed_by: name, claimed_at: new Date().toISOString() })
     .eq("id", id as number)
+    .eq("campaign_id", campaignId)
     .not("claimed_by", "is", null)
     .select("id");
 
