@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-import { verifyAdminPassword } from "@/lib/admin";
 import { getSupabase } from "@/lib/supabase";
 import { findCampaignId } from "@/lib/campaign";
 
@@ -11,7 +10,7 @@ export async function POST(
 ) {
   const { slug } = await context.params;
 
-  let body: { id?: unknown; action?: unknown; name?: unknown; password?: unknown };
+  let body: { id?: unknown; action?: unknown; name?: unknown };
   try {
     body = await req.json();
   } catch {
@@ -20,14 +19,10 @@ export async function POST(
 
   const id = body.id;
   const action = body.action as EditAction;
-  const password = typeof body.password === "string" ? body.password : "";
   const name = typeof body.name === "string" ? body.name.trim() : "";
 
   if (!Number.isInteger(id) || (action !== "rename" && action !== "release")) {
     return NextResponse.json({ error: "invalid_input" }, { status: 400 });
-  }
-  if (!verifyAdminPassword(password)) {
-    return NextResponse.json({ error: "unauthorized" }, { status: 403 });
   }
   if (action === "rename" && (name.length === 0 || name.length > 60)) {
     return NextResponse.json({ error: "invalid_input" }, { status: 400 });

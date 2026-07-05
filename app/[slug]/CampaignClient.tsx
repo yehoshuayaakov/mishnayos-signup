@@ -14,7 +14,6 @@ type Tractate = {
 };
 
 const SEDER_ORDER = ["זרעים", "מועד", "נשים", "נזיקין", "קדשים", "טהרות"];
-const ADMIN_PW_KEY = "mishnayot_admin_pw";
 const FALLBACK_PHOTO = "/candle.png";
 
 export default function CampaignClient({ campaign }: { campaign: Campaign }) {
@@ -24,18 +23,11 @@ export default function CampaignClient({ campaign }: { campaign: Campaign }) {
   const [claimingId, setClaimingId] = useState<number | null>(null);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [nameInput, setNameInput] = useState("");
-  const [passwordInput, setPasswordInput] = useState("");
-  const [adminPassword, setAdminPassword] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState<{ kind: "ok" | "err"; text: string } | null>(null);
   const [photoSrc, setPhotoSrc] = useState(campaign.photo_url || FALLBACK_PHOTO);
   const inputRef = useRef<HTMLInputElement>(null);
   const editRef = useRef<HTMLInputElement>(null);
-
-  useEffect(() => {
-    const saved = sessionStorage.getItem(ADMIN_PW_KEY);
-    if (saved) setAdminPassword(saved);
-  }, []);
 
   const load = useCallback(async () => {
     try {
@@ -67,17 +59,6 @@ export default function CampaignClient({ campaign }: { campaign: Campaign }) {
     setClaimingId(null);
     setEditingId(null);
     setNameInput("");
-    setPasswordInput("");
-  }
-
-  function getPassword(): string {
-    return adminPassword || passwordInput.trim();
-  }
-
-  function savePassword(pw: string) {
-    setAdminPassword(pw);
-    sessionStorage.setItem(ADMIN_PW_KEY, pw);
-    setPasswordInput("");
   }
 
   async function submitClaim(id: number) {
@@ -111,11 +92,7 @@ export default function CampaignClient({ campaign }: { campaign: Campaign }) {
   }
 
   async function submitEdit(id: number, action: "rename" | "release") {
-    const password = getPassword();
-    if (!password || submitting) {
-      setMessage({ kind: "err", text: "נדרשת סיסמת ניהול לעריכה." });
-      return;
-    }
+    if (submitting) return;
     const name = nameInput.trim();
     if (action === "rename" && !name) return;
 
@@ -125,19 +102,14 @@ export default function CampaignClient({ campaign }: { campaign: Campaign }) {
       const res = await fetch(`/api/campaigns/${slug}/edit`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id, action, name, password }),
+        body: JSON.stringify({ id, action, name }),
       });
       if (res.ok) {
-        savePassword(password);
         setMessage({
           kind: "ok",
           text: action === "release" ? "המסכת שוחררה וזמינה שוב." : "השם עודכן בהצלחה.",
         });
         closeForms();
-      } else if (res.status === 403) {
-        setMessage({ kind: "err", text: "סיסמת ניהול שגויה." });
-        sessionStorage.removeItem(ADMIN_PW_KEY);
-        setAdminPassword("");
       } else {
         setMessage({ kind: "err", text: "אירעה שגיאה. נסו שוב." });
       }
@@ -238,15 +210,6 @@ export default function CampaignClient({ campaign }: { campaign: Campaign }) {
                               submitEdit(t.id, "rename");
                             }}
                           >
-                            {!adminPassword && (
-                              <input
-                                type="password"
-                                value={passwordInput}
-                                placeholder="סיסמת ניהול"
-                                onChange={(e) => setPasswordInput(e.target.value)}
-                                disabled={submitting}
-                              />
-                            )}
                             <input
                               ref={editRef}
                               type="text"
