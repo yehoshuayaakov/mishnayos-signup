@@ -53,7 +53,8 @@ body {
   object-fit: cover;
   border-radius: 50%;
   border: 3px solid var(--gold);
-  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.35);
+  box-shadow: 0 0 34px 8px rgba(230, 217, 184, 0.35),
+    0 8px 28px rgba(0, 0, 0, 0.35);
   margin-bottom: 20px;
 }
 
