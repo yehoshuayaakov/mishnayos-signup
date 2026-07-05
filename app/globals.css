@@ -67,6 +67,7 @@ body {
   color: var(--gold-soft);
   margin-top: 8px;
   font-size: 1.02rem;
+  white-space: pre-line;
 }
 
 .hero-instructions {
