@@ -70,6 +70,13 @@ body {
   white-space: pre-line;
 }
 
+.hero-deadline {
+  color: rgba(255, 255, 255, 0.92);
+  margin-top: 6px;
+  font-size: 0.98rem;
+  font-weight: 600;
+}
+
 .hero-instructions {
   margin-top: 18px;
   color: rgba(255, 255, 255, 0.85);
@@ -269,13 +276,16 @@ body {
 }
 
 .btn-edit {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   background: transparent;
   color: var(--muted);
-  font-size: 0.82rem;
-  font-weight: 600;
-  padding: 4px 10px;
+  width: 30px;
+  height: 30px;
+  padding: 0;
   border: 1px solid var(--border);
-  border-radius: 999px;
+  border-radius: 50%;
 }
 
 .btn-edit:hover {

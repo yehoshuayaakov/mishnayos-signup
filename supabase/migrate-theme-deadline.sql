@@ -1,62 +1,15 @@
--- Multi-campaign schema. Run once in the Supabase SQL Editor
--- (dashboard -> SQL Editor -> New query -> paste -> Run).
---
--- WARNING: this DROPs and recreates the tables. If you have existing signup data,
--- take a backup first (see scripts/backup-tractates.mjs or supabase/backups/README.md).
---
--- One database hosts many campaigns. Each campaign has its own 64 tractate slots.
--- Adding a new campaign later is a single call: select create_campaign(...);
+-- Adds per-campaign color theme + a dedicated deadline line.
+-- Safe to run on an existing database (no data is dropped).
+-- Run in the Supabase SQL Editor.
 
+-- 1) New columns (idempotent).
+alter table campaigns add column if not exists theme text not null default 'navy';
+alter table campaigns add column if not exists deadline text not null default '';
+
+-- 2) Upgrade create_campaign to accept theme + deadline (old 6-arg version removed).
 drop function if exists create_campaign(text, text, text, text, text, text);
 drop function if exists create_campaign(text, text, text, text, text, text, text, text);
-drop table if exists tractates;
-drop table if exists campaigns;
 
--- One row per person/campaign being learned for.
-create table campaigns (
-  id bigint generated always as identity primary key,
-  slug text not null unique,
-  title text not null,
-  in_memory_of text not null,
-  subtitle text not null default '',
-  deadline text not null default '',   -- e.g. "נא לסיים עד ..." shown as its own line
-  instructions text not null default '',
-  photo_url text not null default '',
-  theme text not null default 'navy',  -- color preset: navy | forest | burgundy | slate
-  is_active boolean not null default true,
-  admin_token text,            -- reserved for future per-campaign admin links (unused for now)
-  created_at timestamptz not null default now()
-);
-
--- 64 tractate slots per campaign.
-create table tractates (
-  id bigint generated always as identity primary key,
-  campaign_id bigint not null references campaigns(id) on delete cascade,
-  seder text not null,
-  name text not null,          -- Hebrew name shown in the UI
-  name_en text not null default '', -- English (Ashkenazi transliteration), for future use
-  chapters integer not null,
-  sort_order integer not null,
-  claimed_by text,
-  claimed_at timestamptz
-);
-
-create index tractates_campaign_sort_idx on tractates (campaign_id, sort_order);
-
--- All access goes through server-side API routes using the service_role key,
--- which BYPASSES row level security. We enable RLS with NO policies so the
--- public anon/authenticated keys (never used by this app) get zero access,
--- while the server (service_role) keeps full access.
-alter table campaigns enable row level security;
-alter table tractates enable row level security;
-
-grant all on table public.campaigns to service_role;
-grant all on table public.campaigns to postgres;
-grant all on table public.tractates to service_role;
-grant all on table public.tractates to postgres;
-
--- Creates a campaign and seeds all 64 tractate slots (Kelim split in two).
--- Returns the new campaign id.
 create or replace function create_campaign(
   p_slug text,
   p_title text,
@@ -152,15 +105,8 @@ begin
 end;
 $$;
 
--- Seed the first campaign. No photo yet -> the UI shows the candle fallback.
--- Args: slug, title, in_memory_of, subtitle, instructions, photo_url, theme, deadline
-select create_campaign(
-  'nemirof',
-  'חלוקת משניות',
-  'ר'' חיים רפאל יצחק הערשל בן ר'' דוד נעמירוף ז"ל',
-  'נלב"ע כ"ז סיון תשפ"ו',
-  'לחצו על מסכת פנויה כדי לקבל אותה על עצמכם',
-  '',
-  'navy',
-  'נא לסיים עד ט"ז אב תשפ"ו'
-);
+-- 3) Move nemirof's deadline out of the subtitle into its own field.
+update campaigns
+set subtitle = 'נלב"ע כ"ז סיון תשפ"ו',
+    deadline = 'נא לסיים עד ט"ז אב תשפ"ו'
+where slug = 'nemirof';

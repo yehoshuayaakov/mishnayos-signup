@@ -7,13 +7,15 @@ export type Campaign = {
   title: string;
   in_memory_of: string;
   subtitle: string;
+  deadline: string;
   instructions: string;
   photo_url: string;
+  theme: string;
   is_active: boolean;
 };
 
 const CAMPAIGN_COLUMNS =
-  "id, slug, title, in_memory_of, subtitle, instructions, photo_url, is_active";
+  "id, slug, title, in_memory_of, subtitle, deadline, instructions, photo_url, theme, is_active";
 
 // Resolve a slug to a campaign id inside an API route. Returns null if the
 // campaign does not exist or is inactive, so callers can reply 404.

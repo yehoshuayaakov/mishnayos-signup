@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Campaign } from "@/lib/campaign";
 import { progressFillStyle } from "@/lib/progress";
+import { themeStyle } from "@/lib/themes";
 
 type Tractate = {
   id: number;
@@ -163,7 +164,7 @@ export default function CampaignClient({ campaign }: { campaign: Campaign }) {
   const pct = total ? Math.round((claimed / total) * 100) : 0;
 
   return (
-    <>
+    <div className="campaign-root" style={themeStyle(campaign.theme)}>
       <div className="hero">
         <div className="hero-inner">
           {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -178,6 +179,7 @@ export default function CampaignClient({ campaign }: { campaign: Campaign }) {
           />
           <h1>{campaign.in_memory_of}</h1>
           {campaign.subtitle && <p className="hero-subtitle">{campaign.subtitle}</p>}
+          {campaign.deadline && <p className="hero-deadline">{campaign.deadline}</p>}
           {campaign.instructions && <p className="hero-instructions">{campaign.instructions}</p>}
         </div>
       </div>
@@ -292,6 +294,8 @@ export default function CampaignClient({ campaign }: { campaign: Campaign }) {
                             <button
                               type="button"
                               className="btn btn-edit"
+                              aria-label="עריכה"
+                              title="עריכה"
                               onClick={() => {
                                 setEditingId(t.id);
                                 setClaimingId(null);
@@ -299,7 +303,19 @@ export default function CampaignClient({ campaign }: { campaign: Campaign }) {
                                 setMessage(null);
                               }}
                             >
-                              עריכה
+                              <svg
+                                viewBox="0 0 24 24"
+                                width="15"
+                                height="15"
+                                fill="none"
+                                stroke="currentColor"
+                                strokeWidth="2"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                aria-hidden="true"
+                              >
+                                <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z" />
+                              </svg>
                             </button>
                           </div>
                         ) : claimingId === t.id ? (
@@ -358,6 +374,6 @@ export default function CampaignClient({ campaign }: { campaign: Campaign }) {
 
         <footer className="footer">תהא נשמתו צרורה בצרור החיים</footer>
       </main>
-    </>
+    </div>
   );
 }
