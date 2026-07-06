@@ -51,6 +51,7 @@ body {
   width: 132px;
   height: 132px;
   object-fit: cover;
+  object-position: center;
   border-radius: 50%;
   border: 3px solid var(--gold);
   box-shadow: 0 0 34px 8px rgba(230, 217, 184, 0.35),
