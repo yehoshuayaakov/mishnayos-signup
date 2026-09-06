@@ -1,15 +1,8 @@
 node_modules/
 .next/
-.next-e2e/
 out/
 .env*
 !.env.local.example
 .DS_Store
 *.tsbuildinfo
 next-env.d.ts
-test-results/
-playwright-report/
-blob-report/
-playwright/.cache/
-reports/mutation/
-.stryker-tmp/

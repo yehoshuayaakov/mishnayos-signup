@@ -1,80 +1,39 @@
-@layer theme, base, components, utilities;
-@import "tailwindcss/theme.css" layer(theme);
-@import "tailwindcss/utilities.css" layer(utilities);
-
-@layer base {
-  *,
-  *::before,
-  *::after {
-    box-sizing: border-box;
-    margin: 0;
-    padding: 0;
-    border-width: 0;
-    border-style: solid;
-    border-color: currentColor;
-  }
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
 }
 
-@layer components {
-  .ds-modal-scroll {
-    scrollbar-width: thin;
-    scrollbar-color: #b8c0ca transparent;
-    scrollbar-gutter: stable;
-  }
-
-  .ds-modal-scroll::-webkit-scrollbar {
-    width: 10px;
-  }
-
-  .ds-modal-scroll::-webkit-scrollbar-track {
-    background: transparent;
-  }
-
-  .ds-modal-scroll::-webkit-scrollbar-thumb {
-    border: 3px solid transparent;
-    border-radius: 999px;
-    background: #b8c0ca;
-    background-clip: content-box;
-  }
-
-  .ds-modal-scroll::-webkit-scrollbar-thumb:hover {
-    background-color: var(--navy-600);
-  }
+:root {
+  --navy-900: #0f1f33;
+  --navy-800: #16293f;
+  --navy-700: #1e3a5f;
+  --navy-600: #2e5984;
+  --gold: #c2a14d;
+  --gold-soft: #e6d9b8;
+  --bg: #fafbfc;
+  --bg-deep: #d7dce4;
+  --card: #ffffff;
+  --border: #e6e8ec;
+  --text: #1d2733;
+  --muted: #69727e;
+  --green-700: #1f6b43;
+  --green-bg: #e6f4ec;
+  --green-border: #c4e5d1;
 }
 
-@layer base {
-  :root {
-    --navy-900: #0f1f33;
-    --navy-800: #16293f;
-    --navy-700: #1e3a5f;
-    --navy-600: #2e5984;
-    --gold: #c2a14d;
-    --gold-soft: #e6d9b8;
-    --bg: #fafbfc;
-    --bg-deep: #d7dce4;
-    --card: #ffffff;
-    --border: #e6e8ec;
-    --text: #1d2733;
-    --muted: #69727e;
-    --green-700: #1f6b43;
-    --green-bg: #e6f4ec;
-    --green-border: #c4e5d1;
-  }
-
-  html {
-    -webkit-text-size-adjust: 100%;
-  }
-
-  body {
-    background: linear-gradient(180deg, var(--bg) 0%, var(--bg-deep) 100%);
-    background-attachment: fixed;
-    color: var(--text);
-    line-height: 1.6;
-    min-height: 100vh;
-  }
+html {
+  -webkit-text-size-adjust: 100%;
 }
 
-@layer components {
+body {
+  background: linear-gradient(180deg, var(--bg) 0%, var(--bg-deep) 100%);
+  background-attachment: fixed;
+  color: var(--text);
+  line-height: 1.6;
+  min-height: 100vh;
+}
+
 /* ---------- Hero ---------- */
 .hero {
   background: linear-gradient(160deg, var(--navy-900) 0%, var(--navy-700) 100%);
@@ -127,7 +86,7 @@
 }
 
 /* ---------- Layout ---------- */
-.campaign-container {
+.container {
   max-width: 720px;
   margin: 0 auto;
   padding: 0 16px 56px;
@@ -171,6 +130,27 @@
   border-radius: 999px;
   transition: width 0.5s ease, background 0.5s ease;
   flex-shrink: 0;
+}
+
+/* ---------- Banners ---------- */
+.banner {
+  border-radius: 12px;
+  padding: 12px 16px;
+  margin-bottom: 16px;
+  font-weight: 500;
+  font-size: 0.97rem;
+}
+
+.banner-ok {
+  background: var(--green-bg);
+  color: var(--green-700);
+  border: 1px solid var(--green-border);
+}
+
+.banner-err {
+  background: #fdeeee;
+  color: #9c3535;
+  border: 1px solid #f2cccc;
 }
 
 .loading {
@@ -297,14 +277,92 @@
   justify-content: flex-end;
 }
 
-.row-open {
-  align-items: flex-start;
-  flex-wrap: wrap;
+.btn-edit {
+  background: transparent;
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 600;
+  padding: 4px 10px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
 }
 
-.row-open .t-status {
-  flex: 1;
-  min-width: 220px;
+.btn-edit:hover {
+  color: var(--navy-700);
+  border-color: var(--navy-600);
+  background: #f5f7fa;
+}
+
+.btn-release {
+  background: #8b3a3a;
+  color: #fff;
+}
+
+.edit-form input[type="password"] {
+  width: 120px;
+}
+
+/* ---------- Buttons & claim form ---------- */
+.btn {
+  font-family: inherit;
+  font-size: 0.9rem;
+  font-weight: 600;
+  border: none;
+  border-radius: 999px;
+  padding: 7px 16px;
+  cursor: pointer;
+  transition: background 0.15s ease, transform 0.1s ease, box-shadow 0.15s ease;
+}
+
+.btn:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.btn-claim {
+  background: var(--navy-700);
+  color: #fff;
+  box-shadow: 0 1px 3px rgba(15, 31, 51, 0.25);
+}
+
+.btn-claim:hover {
+  background: var(--navy-600);
+  transform: translateY(-1px);
+  box-shadow: 0 3px 8px rgba(15, 31, 51, 0.25);
+}
+
+.btn-confirm {
+  background: var(--green-700);
+  color: #fff;
+}
+
+.btn-cancel {
+  background: #eceef1;
+  color: var(--text);
+}
+
+.claim-form {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.claim-form input {
+  font-family: inherit;
+  font-size: 0.95rem;
+  padding: 7px 12px;
+  border: 1.5px solid var(--border);
+  border-radius: 999px;
+  width: 160px;
+  background: #fff;
+}
+
+.claim-form input:focus {
+  outline: none;
+  border-color: var(--navy-600);
+  box-shadow: 0 0 0 3px rgba(46, 89, 132, 0.15);
 }
 
 .footer {
@@ -329,8 +387,11 @@
     gap: 0;
   }
 
+  .claim-form input {
+    width: 120px;
+  }
+
   .seder-head {
     padding: 12px 14px;
   }
-}
 }

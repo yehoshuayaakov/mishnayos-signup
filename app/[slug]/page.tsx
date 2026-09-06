@@ -1,9 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getCampaign } from "@/lib/campaign";
-import { isEmailRemindersEnabled } from "@/lib/email-reminder-availability";
 import { isReservedSlug } from "@/lib/reserved";
-import { isVoiceRemindersEnabled } from "@/lib/voice";
 import CampaignClient from "./CampaignClient";
 
 export const dynamic = "force-dynamic";
@@ -30,11 +28,5 @@ export default async function CampaignPage({
   const campaign = await getCampaign(slug);
   if (!campaign) notFound();
 
-  return (
-    <CampaignClient
-      campaign={campaign}
-      remindersAvailable={isEmailRemindersEnabled()}
-      voiceAvailable={isVoiceRemindersEnabled()}
-    />
-  );
+  return <CampaignClient campaign={campaign} />;
 }

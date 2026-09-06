@@ -1,18 +1,8 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { ClaimDialog, type ReminderForm } from "@/components/claim/ClaimDialog";
-import { Banner } from "@/components/ds/Banner";
-import { Button } from "@/components/ds/Button";
-import { TextField } from "@/components/ds/TextField";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Campaign } from "@/lib/campaign";
-import {
-  claimFieldErrors,
-  claimFormSchema,
-  type ClaimFieldErrors,
-} from "@/lib/claim-validation";
 import { progressFillStyle } from "@/lib/progress";
-import type { Cadence, ReminderLocale } from "@/lib/reminders";
 import { themeStyle } from "@/lib/themes";
 
 type Tractate = {
@@ -21,62 +11,23 @@ type Tractate = {
   name: string;
   chapters: number;
   claimed_by: string | null;
-  can_edit: boolean;
-  edit_until: string | null;
 };
 
 const SEDER_ORDER = ["זרעים", "מועד", "נשים", "נזיקין", "קדשים", "טהרות"];
 const FALLBACK_PHOTO = "/candle.png";
-const CLAIM_ERRORS: Record<string, string> = {
-  invalid_name: "נא למלא שם.",
-  invalid_cadence: "נא לבחור תדירות לתזכורות.",
-  email_required: "נא למלא כתובת אימייל.",
-  phone_required: "נא למלא מספר טלפון.",
-  invalid_email: "כתובת האימייל אינה תקינה.",
-  invalid_phone: "מספר הטלפון אינו תקין. השתמשו בקידומת בינלאומית, למשל ‎+972…",
-  deadline_required: "אין דדליין לחלוקה זו, לכן לא ניתן לבחור תזכורת שבוע לפני.",
-  voice_unavailable: "שיחות טלפוניות אינן זמינות כרגע. ניתן לבחור תזכורת באימייל.",
-  reminders_unavailable: "התזכורות אינן זמינות כרגע.",
-};
 
-function emptyReminder(): ReminderForm {
-  return {
-    want: false,
-    cadence: "weekly" as Cadence,
-    sendEmail: true,
-    sendVoice: false,
-    locale: "he" as ReminderLocale,
-    email: "",
-    phone: "",
-  };
-}
-
-export default function CampaignClient({
-  campaign,
-  remindersAvailable,
-  voiceAvailable,
-}: {
-  campaign: Campaign;
-  remindersAvailable: boolean;
-  voiceAvailable: boolean;
-}) {
+export default function CampaignClient({ campaign }: { campaign: Campaign }) {
   const slug = campaign.slug;
-  const hasDeadline = Boolean(campaign.deadline_at);
-  const theme = themeStyle(campaign.theme);
   const [tractates, setTractates] = useState<Tractate[] | null>(null);
   const [loadError, setLoadError] = useState(false);
   const [claimingId, setClaimingId] = useState<number | null>(null);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [nameInput, setNameInput] = useState("");
-  const [reminder, setReminder] = useState(emptyReminder);
   const [submitting, setSubmitting] = useState(false);
-  const [claimError, setClaimError] = useState<string | null>(null);
-  const [fieldErrors, setFieldErrors] = useState<ClaimFieldErrors>({});
-  const [message, setMessage] = useState<{ kind: "ok" | "err"; text: string; href?: string } | null>(
-    null
-  );
+  const [message, setMessage] = useState<{ kind: "ok" | "err"; text: string } | null>(null);
   const [photoSrc, setPhotoSrc] = useState(campaign.photo_url || FALLBACK_PHOTO);
-  const [now, setNow] = useState(() => Date.now());
+  const inputRef = useRef<HTMLInputElement>(null);
+  const editRef = useRef<HTMLInputElement>(null);
 
   const load = useCallback(async () => {
     try {
@@ -97,112 +48,43 @@ export default function CampaignClient({
   }, [load]);
 
   useEffect(() => {
-    const timer = setInterval(() => setNow(Date.now()), 1_000);
-    return () => clearInterval(timer);
-  }, []);
+    if (claimingId !== null) inputRef.current?.focus();
+  }, [claimingId]);
+
+  useEffect(() => {
+    if (editingId !== null) editRef.current?.focus();
+  }, [editingId]);
 
   function closeForms() {
     setClaimingId(null);
     setEditingId(null);
     setNameInput("");
-    setReminder(emptyReminder());
-    setClaimError(null);
-    setFieldErrors({});
   }
 
-  function clearFieldError(field: keyof ClaimFieldErrors) {
-    setFieldErrors((current) => {
-      if (!current[field]) return current;
-      const next = { ...current };
-      delete next[field];
-      return next;
-    });
-  }
-
-  const claiming = tractates?.find((t) => t.id === claimingId) ?? null;
-
-  async function submitClaim() {
-    if (!claiming || submitting) return;
-    const validation = claimFormSchema.safeParse({
-      name: nameInput,
-      reminders: remindersAvailable && reminder.want,
-      email: reminder.email,
-      sendVoice: remindersAvailable && voiceAvailable && reminder.sendVoice,
-      phone: reminder.phone,
-    });
-    if (!validation.success) {
-      setFieldErrors(claimFieldErrors(validation.error));
-      setClaimError(null);
-      return;
-    }
-    const name = validation.data.name;
+  async function submitClaim(id: number) {
+    const name = nameInput.trim();
+    if (!name || submitting) return;
     setSubmitting(true);
     setMessage(null);
-    setClaimError(null);
-    setFieldErrors({});
     try {
-      const payload: Record<string, unknown> = { id: claiming.id, name };
-      if (remindersAvailable && reminder.want) {
-        payload.reminders = true;
-        payload.cadence = reminder.cadence;
-        payload.sendEmail = true;
-        payload.sendVoice = voiceAvailable && reminder.sendVoice;
-        payload.locale = reminder.locale;
-        payload.email = reminder.email;
-        payload.phone = reminder.phone;
-      }
       const res = await fetch(`/api/campaigns/${slug}/claim`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
+        body: JSON.stringify({ id, name }),
       });
       if (res.ok) {
-        let manageUrl = "";
-        try {
-          const json = await res.json();
-          if (typeof json.manageUrl === "string") manageUrl = json.manageUrl;
-        } catch {
-          /* ignore */
-        }
-        if (reminder.want && manageUrl) {
-          setMessage({
-            kind: "ok",
-            text: "תודה רבה! המסכת נרשמה על שמכם. נשלח אימייל עם קישור לניהול התזכורות. שמרו גם את הקישור כאן:",
-            href: manageUrl,
-          });
-        } else {
-          setMessage({
-            kind: "ok",
-            text: "תודה רבה! המסכת נרשמה על שמכם. תזכו למצוות!",
-          });
-        }
-        closeForms();
+        setMessage({ kind: "ok", text: "תודה רבה! המסכת נרשמה על שמכם. תזכו למצוות!" });
+        setClaimingId(null);
+        setNameInput("");
       } else if (res.status === 409) {
-        setMessage({
-          kind: "err",
-          text: "המסכת הזו נתפסה זה עתה על ידי מישהו אחר. נא לבחור מסכת אחרת.",
-        });
-        closeForms();
+        setMessage({ kind: "err", text: "המסכת הזו נתפסה זה עתה על ידי מישהו אחר. נא לבחור מסכת אחרת." });
+        setClaimingId(null);
+        setNameInput("");
       } else {
-        let code = "";
-        try {
-          const json = await res.json();
-          code = typeof json.error === "string" ? json.error : "";
-        } catch {
-          /* ignore */
-        }
-        if (code === "invalid_name") {
-          setFieldErrors({ name: CLAIM_ERRORS[code] });
-        } else if (code === "email_required" || code === "invalid_email") {
-          setFieldErrors({ email: CLAIM_ERRORS[code] });
-        } else if (code === "phone_required" || code === "invalid_phone") {
-          setFieldErrors({ phone: CLAIM_ERRORS[code] });
-        } else {
-          setClaimError(CLAIM_ERRORS[code] ?? "אירעה שגיאה. נסו שוב בעוד רגע.");
-        }
+        setMessage({ kind: "err", text: "אירעה שגיאה. נסו שוב בעוד רגע." });
       }
     } catch {
-      setClaimError("אירעה שגיאה. בדקו את החיבור לאינטרנט ונסו שוב.");
+      setMessage({ kind: "err", text: "אירעה שגיאה. בדקו את החיבור לאינטרנט ונסו שוב." });
     } finally {
       setSubmitting(false);
       load();
@@ -228,9 +110,6 @@ export default function CampaignClient({
           text: action === "release" ? "המסכת שוחררה וזמינה שוב." : "השם עודכן בהצלחה.",
         });
         closeForms();
-      } else if (res.status === 403) {
-        closeForms();
-        setMessage({ kind: "err", text: "חלון העריכה של 15 הדקות הסתיים." });
       } else {
         setMessage({ kind: "err", text: "אירעה שגיאה. נסו שוב." });
       }
@@ -257,7 +136,7 @@ export default function CampaignClient({
   const pct = total ? Math.round((claimed / total) * 100) : 0;
 
   return (
-    <div className="campaign-root" style={theme}>
+    <div className="campaign-root" style={themeStyle(campaign.theme)}>
       <div className="hero">
         <div className="hero-inner">
           {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -277,11 +156,11 @@ export default function CampaignClient({
         </div>
       </div>
 
-      <main className="campaign-container">
+      <main className="container">
         {total > 0 && (
           <section className="progress-card">
             <div className="progress-row">
-              <span>
+              <span className="progress-text">
                 נלקחו <strong>{claimed}</strong> מתוך <strong>{total}</strong> מסכתות
               </span>
               <span className="progress-pct">{pct}%</span>
@@ -293,17 +172,13 @@ export default function CampaignClient({
         )}
 
         {message && (
-          <Banner
-            tone={message.kind === "ok" ? "success" : "error"}
-            href={message.href}
-            hrefLabel="ניהול תזכורות"
-          >
+          <div className={`banner ${message.kind === "ok" ? "banner-ok" : "banner-err"}`}>
             {message.text}
-          </Banner>
+          </div>
         )}
 
         {loadError && tractates === null && (
-          <Banner tone="error">לא ניתן לטעון את הנתונים. נסו לרענן את הדף.</Banner>
+          <div className="banner banner-err">לא ניתן לטעון את הנתונים. נסו לרענן את הדף.</div>
         )}
         {tractates === null && !loadError && <div className="loading">טוען…</div>}
 
@@ -321,49 +196,48 @@ export default function CampaignClient({
                 </div>
                 <ul className="tractate-list">
                   {items.map((t) => (
-                    <li
-                      key={t.id}
-                      className={`${t.claimed_by ? "row row-taken" : "row"}${editingId === t.id ? " row-open" : ""}`}
-                    >
+                    <li key={t.id} className={t.claimed_by ? "row row-taken" : "row"}>
                       <div className="t-info">
                         <span className="t-name">{t.name}</span>
                         <span className="t-chapters">{t.chapters} פרקים</span>
                       </div>
                       <div className="t-status">
-                        {t.claimed_by &&
-                        editingId === t.id &&
-                        t.can_edit &&
-                        t.edit_until &&
-                        Date.parse(t.edit_until) > now ? (
+                        {t.claimed_by && editingId === t.id ? (
                           <form
-                            className="flex flex-wrap items-end justify-end gap-2"
+                            className="claim-form edit-form"
                             onSubmit={(e) => {
                               e.preventDefault();
                               submitEdit(t.id, "rename");
                             }}
                           >
-                            <TextField
-                              label="שם"
+                            <input
+                              ref={editRef}
+                              type="text"
                               value={nameInput}
-                              onChange={setNameInput}
                               maxLength={60}
-                              isDisabled={submitting}
-                              className="w-[140px]"
+                              placeholder="שם"
+                              onChange={(e) => setNameInput(e.target.value)}
+                              disabled={submitting}
                             />
-                            <Button variant="confirm" type="submit" isDisabled={submitting}>
+                            <button type="submit" className="btn btn-confirm" disabled={submitting}>
                               שמירה
-                            </Button>
-                            <Button
-                              variant="danger"
+                            </button>
+                            <button
                               type="button"
-                              isDisabled={submitting}
-                              onPress={() => submitEdit(t.id, "release")}
+                              className="btn btn-release"
+                              disabled={submitting}
+                              onClick={() => submitEdit(t.id, "release")}
                             >
                               שחרור
-                            </Button>
-                            <Button variant="cancel" type="button" isDisabled={submitting} onPress={closeForms}>
+                            </button>
+                            <button
+                              type="button"
+                              className="btn btn-cancel"
+                              disabled={submitting}
+                              onClick={closeForms}
+                            >
                               ביטול
-                            </Button>
+                            </button>
                           </form>
                         ) : t.claimed_by ? (
                           <div className="taken-wrap">
@@ -380,38 +254,64 @@ export default function CampaignClient({
                               </svg>
                               {t.claimed_by}
                             </span>
-                            {t.can_edit &&
-                              t.edit_until &&
-                              Date.parse(t.edit_until) > now && (
-                                <Button
-                                  variant="ghost"
-                                  onPress={() => {
-                                    setEditingId(t.id);
-                                    setClaimingId(null);
-                                    setNameInput(t.claimed_by ?? "");
-                                    setReminder(emptyReminder());
-                                    setMessage(null);
-                                  }}
-                                >
-                                  עריכה
-                                </Button>
-                              )}
+                            <button
+                              type="button"
+                              className="btn btn-edit"
+                              onClick={() => {
+                                setEditingId(t.id);
+                                setClaimingId(null);
+                                setNameInput(t.claimed_by ?? "");
+                                setMessage(null);
+                              }}
+                            >
+                              עריכה
+                            </button>
                           </div>
+                        ) : claimingId === t.id ? (
+                          <form
+                            className="claim-form"
+                            onSubmit={(e) => {
+                              e.preventDefault();
+                              submitClaim(t.id);
+                            }}
+                          >
+                            <input
+                              ref={inputRef}
+                              type="text"
+                              value={nameInput}
+                              maxLength={60}
+                              placeholder="השם שלכם"
+                              onChange={(e) => setNameInput(e.target.value)}
+                              disabled={submitting}
+                            />
+                            <button type="submit" className="btn btn-confirm" disabled={submitting}>
+                              אישור
+                            </button>
+                            <button
+                              type="button"
+                              className="btn btn-cancel"
+                              disabled={submitting}
+                              onClick={() => {
+                                setClaimingId(null);
+                                setNameInput("");
+                              }}
+                            >
+                              ביטול
+                            </button>
+                          </form>
                         ) : (
-                          <Button
-                            variant="primary"
-                            onPress={() => {
+                          <button
+                            type="button"
+                            className="btn btn-claim"
+                            onClick={() => {
                               setClaimingId(t.id);
                               setEditingId(null);
                               setNameInput("");
-                              setReminder(emptyReminder());
-                              setClaimError(null);
-                              setFieldErrors({});
                               setMessage(null);
                             }}
                           >
                             לקבלת המסכת
-                          </Button>
+                          </button>
                         )}
                       </div>
                     </li>
@@ -423,34 +323,6 @@ export default function CampaignClient({
 
         <footer className="footer">תהא נשמתו צרורה בצרור החיים</footer>
       </main>
-
-      <ClaimDialog
-        isOpen={claiming !== null}
-        onOpenChange={(open) => {
-          if (!open) closeForms();
-        }}
-        tractateName={claiming?.name ?? ""}
-        chapters={claiming?.chapters ?? 0}
-        hasDeadline={hasDeadline}
-        remindersAvailable={remindersAvailable}
-        voiceAvailable={voiceAvailable}
-        name={nameInput}
-        onNameChange={(name) => {
-          setNameInput(name);
-          clearFieldError("name");
-        }}
-        reminder={reminder}
-        onReminderChange={(next) => {
-          if (next.email !== reminder.email) clearFieldError("email");
-          if (next.phone !== reminder.phone) clearFieldError("phone");
-          setReminder(next);
-        }}
-        fieldErrors={fieldErrors}
-        submitting={submitting}
-        error={claimError}
-        style={theme}
-        onSubmit={submitClaim}
-      />
     </div>
   );
 }

@@ -5,35 +5,18 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "next start",
-    "test": "vitest run",
-    "test:watch": "vitest",
-    "test:e2e": "playwright test",
-    "test:mutation": "stryker run",
-    "workflow:validate": "node scripts/validate-feature-workflow.mjs"
+    "start": "next start"
   },
   "dependencies": {
-    "@supabase/ssr": "^0.12.5",
     "@supabase/supabase-js": "^2",
     "next": "^15",
     "react": "^19",
-    "react-aria-components": "^1.20.0",
-    "react-dom": "^19",
-    "resend": "^6.21.0",
-    "twilio": "^6.1.0",
-    "zod": "^4.4.3"
+    "react-dom": "^19"
   },
   "devDependencies": {
-    "@playwright/test": "^1.55.0",
-    "@stryker-mutator/core": "^10.0.0",
-    "@stryker-mutator/vitest-runner": "^10.0.0",
-    "@tailwindcss/postcss": "^4.3.3",
     "@types/node": "^22",
     "@types/react": "^19",
     "@types/react-dom": "^19",
-    "postcss": "^8.5.26",
-    "tailwindcss": "^4.3.3",
-    "typescript": "^5",
-    "vitest": "^3.2.4"
+    "typescript": "^5"
   }
 }
