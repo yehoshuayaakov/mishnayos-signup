@@ -1,6 +1,17 @@
 import { NextResponse } from "next/server";
+import { claimantNameSchema } from "@/lib/claim-validation";
 import { getSupabase } from "@/lib/supabase";
-import { findCampaignId } from "@/lib/campaign";
+import { getCampaign } from "@/lib/campaign";
+import { isEmailRemindersEnabled } from "@/lib/email-reminder-availability";
+import { parseReminderFields } from "@/lib/reminders";
+import { claimWithOptionalReminder } from "@/lib/reminder-job";
+import { isVoiceRemindersEnabled } from "@/lib/voice";
+import {
+  claimCapabilityCookieName,
+  claimCapabilityCookieOptions,
+  hashClaimCapability,
+  newClaimCapability,
+} from "@/lib/claim-capability";
 
 export async function POST(
   req: Request,
@@ -8,7 +19,7 @@ export async function POST(
 ) {
   const { slug } = await context.params;
 
-  let body: { id?: unknown; name?: unknown };
+  let body: Record<string, unknown>;
   try {
     body = await req.json();
   } catch {
@@ -16,9 +27,33 @@ export async function POST(
   }
 
   const id = body.id;
-  const name = typeof body.name === "string" ? body.name.trim() : "";
-  if (!Number.isInteger(id) || name.length === 0 || name.length > 60) {
+  if (!Number.isInteger(id)) {
     return NextResponse.json({ error: "invalid_input" }, { status: 400 });
+  }
+  const parsedName = claimantNameSchema.safeParse(body.name);
+  if (!parsedName.success) {
+    return NextResponse.json({ error: "invalid_name" }, { status: 400 });
+  }
+  const name = parsedName.data;
+
+  const campaign = await getCampaign(slug);
+  if (!campaign) {
+    return NextResponse.json({ error: "campaign_not_found" }, { status: 404 });
+  }
+  if (body.reminders === true && !isEmailRemindersEnabled()) {
+    return NextResponse.json({ error: "reminders_unavailable" }, { status: 400 });
+  }
+
+  const parsed = parseReminderFields(body);
+  if (!parsed.ok) {
+    return NextResponse.json({ error: parsed.error }, { status: 400 });
+  }
+  if (parsed.reminder?.sendVoice && !isVoiceRemindersEnabled()) {
+    return NextResponse.json({ error: "voice_unavailable" }, { status: 400 });
+  }
+
+  if (parsed.reminder?.cadence === "week_before" && !campaign.deadline_at) {
+    return NextResponse.json({ error: "deadline_required" }, { status: 400 });
   }
 
   let supabase;
@@ -29,27 +64,30 @@ export async function POST(
     return NextResponse.json({ error: message }, { status: 500 });
   }
 
-  const campaignId = await findCampaignId(supabase, slug);
-  if (campaignId === null) {
-    return NextResponse.json({ error: "campaign_not_found" }, { status: 404 });
+  try {
+    const claimCapability = newClaimCapability();
+    const result = await claimWithOptionalReminder(supabase, {
+      tractateId: id as number,
+      campaignId: campaign.id,
+      name,
+      reminder: parsed.reminder,
+      claimEditTokenHash: hashClaimCapability(claimCapability),
+    });
+    if (result.status === "already_claimed") {
+      return NextResponse.json({ error: "already_claimed" }, { status: 409 });
+    }
+    const response = NextResponse.json({
+      ok: true,
+      ...(result.manageUrl ? { manageUrl: result.manageUrl } : {}),
+    });
+    response.cookies.set(
+      claimCapabilityCookieName(slug, id as number),
+      claimCapability,
+      claimCapabilityCookieOptions()
+    );
+    return response;
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "unknown_error";
+    return NextResponse.json({ error: message }, { status: 500 });
   }
-
-  // The .is("claimed_by", null) filter makes this atomic: if two people try
-  // to claim the same tractate at once, only one update matches. The
-  // campaign_id filter keeps campaigns isolated from each other.
-  const { data, error } = await supabase
-    .from("tractates")
-    .update({ claimed_by: name, claimed_at: new Date().toISOString() })
-    .eq("id", id as number)
-    .eq("campaign_id", campaignId)
-    .is("claimed_by", null)
-    .select("id");
-
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
-  }
-  if (!data || data.length === 0) {
-    return NextResponse.json({ error: "already_claimed" }, { status: 409 });
-  }
-  return NextResponse.json({ ok: true });
 }

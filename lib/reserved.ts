@@ -9,6 +9,7 @@ const RESERVED_SLUGS = new Set([
   "sitemap.xml",
   "public",
   "static",
+  "reminders",
 ]);
 
 export function isReservedSlug(slug: string): boolean {
