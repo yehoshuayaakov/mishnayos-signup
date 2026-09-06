@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { e2eCampaign } from "@/lib/e2e-fixture";
 import { getSupabase } from "@/lib/supabase";
 
 export type Campaign = {
@@ -8,6 +9,8 @@ export type Campaign = {
   in_memory_of: string;
   subtitle: string;
   deadline: string;
+  deadline_at: string | null;
+  timezone: string;
   instructions: string;
   photo_url: string;
   theme: string;
@@ -15,7 +18,7 @@ export type Campaign = {
 };
 
 const CAMPAIGN_COLUMNS =
-  "id, slug, title, in_memory_of, subtitle, deadline, instructions, photo_url, theme, is_active";
+  "id, slug, title, in_memory_of, subtitle, deadline, deadline_at, timezone, instructions, photo_url, theme, is_active";
 
 // Resolve a slug to a campaign id inside an API route. Returns null if the
 // campaign does not exist or is inactive, so callers can reply 404.
@@ -36,6 +39,9 @@ export async function findCampaignId(
 // Load full campaign details for server components. Returns null on any failure
 // (missing env, not found, inactive) so the page can render notFound().
 export async function getCampaign(slug: string): Promise<Campaign | null> {
+  const fixture = e2eCampaign(slug);
+  if (fixture) return fixture;
+
   let supabase: SupabaseClient;
   try {
     supabase = getSupabase();

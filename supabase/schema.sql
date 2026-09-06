@@ -7,9 +7,17 @@
 -- One database hosts many campaigns. Each campaign has its own 64 tractate slots.
 -- Adding a new campaign later is a single call: select create_campaign(...);
 
+drop function if exists edit_claim_with_capability(bigint, bigint, text, text, text);
+drop function if exists release_tractate(bigint, bigint);
+drop function if exists claim_tractate(bigint, bigint, text, boolean, text, text, text, boolean, boolean, text, text, text);
+drop function if exists claim_tractate(bigint, bigint, text, boolean, text, text, text, boolean, boolean, text, text);
 drop function if exists create_campaign(text, text, text, text, text, text);
 drop function if exists create_campaign(text, text, text, text, text, text, text, text);
+drop function if exists create_campaign(text, text, text, text, text, text, text, text, timestamptz, text);
+drop table if exists reminder_sends;
+drop table if exists reminders;
 drop table if exists tractates;
+drop table if exists campaign_memberships;
 drop table if exists campaigns;
 
 -- One row per person/campaign being learned for.
@@ -20,6 +28,8 @@ create table campaigns (
   in_memory_of text not null,
   subtitle text not null default '',
   deadline text not null default '',   -- e.g. "נא לסיים עד ..." shown as its own line
+  deadline_at timestamptz,             -- real timestamp for week-before reminders
+  timezone text not null default 'Asia/Jerusalem',
   instructions text not null default '',
   photo_url text not null default '',
   theme text not null default 'navy',  -- color preset: navy | forest | burgundy | slate
@@ -38,10 +48,52 @@ create table tractates (
   chapters integer not null,
   sort_order integer not null,
   claimed_by text,
-  claimed_at timestamptz
+  claimed_at timestamptz,
+  claim_edit_token_hash text
 );
 
 create index tractates_campaign_sort_idx on tractates (campaign_id, sort_order);
+
+create table campaign_memberships (
+  user_id uuid not null references auth.users(id) on delete cascade,
+  campaign_id bigint not null references campaigns(id) on delete cascade,
+  role text not null default 'organizer' check (role in ('organizer')),
+  created_at timestamptz not null default now(),
+  primary key (user_id, campaign_id)
+);
+
+create index campaign_memberships_campaign_idx on campaign_memberships (campaign_id);
+
+-- Opt-in reminder contact for a claimed tractate. Never returned by the public state API.
+create table reminders (
+  id bigint generated always as identity primary key,
+  tractate_id bigint not null unique references tractates(id) on delete cascade,
+  campaign_id bigint not null references campaigns(id) on delete cascade,
+  email text,
+  phone_e164 text,
+  cadence text not null check (cadence in ('daily', 'weekly', 'week_before')),
+  send_email boolean not null default false,
+  send_voice boolean not null default false,
+  locale text not null default 'he' check (locale in ('he', 'en')),
+  unsubscribed_at timestamptz,
+  manage_token text not null unique,
+  created_at timestamptz not null default now(),
+  check (send_email or send_voice)
+);
+
+create index reminders_campaign_idx on reminders (campaign_id);
+
+-- One row per successful (or terminal-failed) send, so cron jobs are idempotent.
+create table reminder_sends (
+  id bigint generated always as identity primary key,
+  reminder_id bigint not null references reminders(id) on delete cascade,
+  channel text not null check (channel in ('email', 'voice')),
+  period_key text not null,
+  sent_at timestamptz not null default now(),
+  status text not null default 'sent' check (status in ('sent', 'failed')),
+  provider_id text,
+  unique (reminder_id, channel, period_key)
+);
 
 -- All access goes through server-side API routes using the service_role key,
 -- which BYPASSES row level security. We enable RLS with NO policies so the
@@ -49,11 +101,20 @@ create index tractates_campaign_sort_idx on tractates (campaign_id, sort_order);
 -- while the server (service_role) keeps full access.
 alter table campaigns enable row level security;
 alter table tractates enable row level security;
+alter table campaign_memberships enable row level security;
+alter table reminders enable row level security;
+alter table reminder_sends enable row level security;
 
 grant all on table public.campaigns to service_role;
 grant all on table public.campaigns to postgres;
 grant all on table public.tractates to service_role;
 grant all on table public.tractates to postgres;
+grant all on table public.campaign_memberships to service_role;
+grant all on table public.campaign_memberships to postgres;
+grant all on table public.reminders to service_role;
+grant all on table public.reminders to postgres;
+grant all on table public.reminder_sends to service_role;
+grant all on table public.reminder_sends to postgres;
 
 -- Creates a campaign and seeds all 64 tractate slots (Kelim split in two).
 -- Returns the new campaign id.
@@ -65,15 +126,17 @@ create or replace function create_campaign(
   p_instructions text,
   p_photo_url text,
   p_theme text default 'navy',
-  p_deadline text default ''
+  p_deadline text default '',
+  p_deadline_at timestamptz default null,
+  p_timezone text default 'Asia/Jerusalem'
 ) returns bigint
 language plpgsql
 as $$
 declare
   new_id bigint;
 begin
-  insert into campaigns (slug, title, in_memory_of, subtitle, instructions, photo_url, theme, deadline)
-  values (p_slug, p_title, p_in_memory_of, p_subtitle, p_instructions, p_photo_url, p_theme, p_deadline)
+  insert into campaigns (slug, title, in_memory_of, subtitle, instructions, photo_url, theme, deadline, deadline_at, timezone)
+  values (p_slug, p_title, p_in_memory_of, p_subtitle, p_instructions, p_photo_url, p_theme, p_deadline, p_deadline_at, p_timezone)
   returning id into new_id;
 
   insert into tractates (campaign_id, seder, name, name_en, chapters, sort_order) values
@@ -152,8 +215,135 @@ begin
 end;
 $$;
 
+-- Atomic claim + optional reminder insert (avoids a claimed row without its reminder).
+create or replace function claim_tractate(
+  p_tractate_id bigint,
+  p_campaign_id bigint,
+  p_name text,
+  p_want_reminder boolean,
+  p_email text,
+  p_phone_e164 text,
+  p_cadence text,
+  p_send_email boolean,
+  p_send_voice boolean,
+  p_locale text,
+  p_manage_token text,
+  p_claim_edit_token_hash text default null
+) returns text
+language plpgsql
+as $$
+declare
+  updated_id bigint;
+begin
+  update tractates
+  set claimed_by = p_name,
+      claimed_at = now(),
+      claim_edit_token_hash = p_claim_edit_token_hash
+  where id = p_tractate_id
+    and campaign_id = p_campaign_id
+    and claimed_by is null
+  returning id into updated_id;
+
+  if updated_id is null then
+    return 'already_claimed';
+  end if;
+
+  if p_want_reminder then
+    insert into reminders (
+      tractate_id, campaign_id, email, phone_e164, cadence,
+      send_email, send_voice, locale, manage_token
+    ) values (
+      p_tractate_id, p_campaign_id, p_email, p_phone_e164, p_cadence,
+      coalesce(p_send_email, false), coalesce(p_send_voice, false),
+      coalesce(p_locale, 'he'), p_manage_token
+    );
+  end if;
+
+  return 'ok';
+end;
+$$;
+
+revoke all on function public.claim_tractate(bigint, bigint, text, boolean, text, text, text, boolean, boolean, text, text, text) from public, anon, authenticated;
+grant execute on function public.claim_tractate(bigint, bigint, text, boolean, text, text, text, boolean, boolean, text, text, text) to service_role, postgres;
+
+create or replace function edit_claim_with_capability(
+  p_tractate_id bigint,
+  p_campaign_id bigint,
+  p_token_hash text,
+  p_action text,
+  p_name text default null
+) returns text
+language plpgsql
+as $$
+declare
+  current_id bigint;
+begin
+  select id into current_id
+  from tractates
+  where id = p_tractate_id
+    and campaign_id = p_campaign_id
+    and claimed_by is not null
+    and claim_edit_token_hash = p_token_hash
+    and claimed_at >= now() - interval '15 minutes'
+  for update;
+
+  if current_id is null then
+    return 'forbidden';
+  end if;
+
+  if p_action = 'rename' and nullif(btrim(p_name), '') is not null then
+    update tractates set claimed_by = btrim(p_name) where id = current_id;
+    return 'ok';
+  end if;
+
+  if p_action = 'release' then
+    delete from reminders where tractate_id = current_id;
+    update tractates
+    set claimed_by = null, claimed_at = null, claim_edit_token_hash = null
+    where id = current_id;
+    return 'ok';
+  end if;
+
+  return 'invalid_input';
+end;
+$$;
+
+revoke all on function public.edit_claim_with_capability(bigint, bigint, text, text, text) from public, anon, authenticated;
+grant execute on function public.edit_claim_with_capability(bigint, bigint, text, text, text) to service_role, postgres;
+
+create or replace function release_tractate(
+  p_tractate_id bigint,
+  p_campaign_id bigint
+) returns text
+language plpgsql
+as $$
+declare
+  current_id bigint;
+begin
+  select id into current_id
+  from tractates
+  where id = p_tractate_id
+    and campaign_id = p_campaign_id
+    and claimed_by is not null
+  for update;
+
+  if current_id is null then
+    return 'not_claimed';
+  end if;
+
+  delete from reminders where tractate_id = current_id;
+  update tractates
+  set claimed_by = null, claimed_at = null, claim_edit_token_hash = null
+  where id = current_id;
+  return 'ok';
+end;
+$$;
+
+revoke all on function public.release_tractate(bigint, bigint) from public, anon, authenticated;
+grant execute on function public.release_tractate(bigint, bigint) to service_role, postgres;
+
 -- Seed the first campaign. No photo yet -> the UI shows the candle fallback.
--- Args: slug, title, in_memory_of, subtitle, instructions, photo_url, theme, deadline
+-- Args: slug, title, in_memory_of, subtitle, instructions, photo_url, theme, deadline, deadline_at, timezone
 select create_campaign(
   'nemirof',
   'חלוקת משניות',
@@ -162,5 +352,7 @@ select create_campaign(
   'לחצו על מסכת פנויה כדי לקבל אותה על עצמכם',
   '',
   'navy',
-  'נא לסיים עד ט"ז אב תשפ"ו'
+  'נא לסיים עד ט"ז אב תשפ"ו',
+  '2026-07-30 23:59:59+03'::timestamptz,
+  'Asia/Jerusalem'
 );
