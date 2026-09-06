@@ -2,9 +2,9 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { ClaimDialog, type ReminderForm } from "@/components/claim/ClaimDialog";
+import { EditClaimDialog } from "@/components/claim/EditClaimDialog";
 import { Banner } from "@/components/ds/Banner";
 import { Button } from "@/components/ds/Button";
-import { TextField } from "@/components/ds/TextField";
 import type { Campaign } from "@/lib/campaign";
 import {
   claimFieldErrors,
@@ -134,6 +134,7 @@ export default function CampaignClient({
   }
 
   const claiming = tractates?.find((t) => t.id === claimingId) ?? null;
+  const editing = tractates?.find((t) => t.id === editingId) ?? null;
 
   async function submitClaim() {
     if (!claiming || submitting) return;
@@ -338,49 +339,14 @@ export default function CampaignClient({
                   {items.map((t) => (
                     <li
                       key={t.id}
-                      className={`${t.claimed_by ? "row row-taken" : "row"}${editingId === t.id ? " row-open" : ""}`}
+                      className={t.claimed_by ? "row row-taken" : "row"}
                     >
                       <div className="t-info">
                         <span className="t-name">{t.name}</span>
                         <span className="t-chapters">{t.chapters} פרקים</span>
                       </div>
                       <div className="t-status">
-                        {t.claimed_by &&
-                        editingId === t.id &&
-                        t.can_edit &&
-                        t.edit_until &&
-                        Date.parse(t.edit_until) > now ? (
-                          <form
-                            className="flex flex-wrap items-end justify-end gap-2"
-                            onSubmit={(e) => {
-                              e.preventDefault();
-                              submitEdit(t.id, "rename");
-                            }}
-                          >
-                            <TextField
-                              label="שם"
-                              value={nameInput}
-                              onChange={setNameInput}
-                              maxLength={60}
-                              isDisabled={submitting}
-                              className="w-[140px]"
-                            />
-                            <Button variant="confirm" type="submit" isDisabled={submitting}>
-                              שמירה
-                            </Button>
-                            <Button
-                              variant="danger"
-                              type="button"
-                              isDisabled={submitting}
-                              onPress={() => submitEdit(t.id, "release")}
-                            >
-                              שחרור
-                            </Button>
-                            <Button variant="cancel" type="button" isDisabled={submitting} onPress={closeForms}>
-                              ביטול
-                            </Button>
-                          </form>
-                        ) : t.claimed_by ? (
+                        {t.claimed_by ? (
                           <div className="taken-wrap">
                             <span className="chip-taken">
                               <svg viewBox="0 0 16 16" width="13" height="13" aria-hidden="true">
@@ -465,6 +431,24 @@ export default function CampaignClient({
         error={claimError}
         style={theme}
         onSubmit={submitClaim}
+      />
+
+      <EditClaimDialog
+        isOpen={editing !== null}
+        onOpenChange={(open) => {
+          if (!open) closeForms();
+        }}
+        tractateName={editing?.name ?? ""}
+        name={nameInput}
+        onNameChange={setNameInput}
+        submitting={submitting}
+        style={theme}
+        onRename={() => {
+          if (editing) submitEdit(editing.id, "rename");
+        }}
+        onRelease={() => {
+          if (editing) submitEdit(editing.id, "release");
+        }}
       />
     </div>
   );

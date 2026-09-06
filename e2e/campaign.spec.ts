@@ -147,10 +147,39 @@ test("claimant edit is visible only to its capability and can release without a 
   await mockBoard(page, [OWNED]);
   await page.goto("/e2e");
   await page.getByRole("button", { name: "עריכה" }).click();
-  await expect(page.getByLabel("סיסמת עריכה")).toHaveCount(0);
-  await page.getByRole("button", { name: "שחרור" }).click();
+  const dialog = page.getByRole("dialog");
+  await expect(dialog).toBeVisible();
+  await expect(dialog.getByLabel("סיסמת עריכה")).toHaveCount(0);
+  await dialog.getByRole("button", { name: "שחרור" }).click();
   expect(released).toBe(true);
   await expect(page.getByText("המסכת שוחררה")).toBeVisible();
+});
+
+test("edit dialog stays above a keyboard-shrunk visual viewport", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.addInitScript(() => {
+    const fake = {
+      height: 390,
+      offsetTop: 0,
+      addEventListener() {},
+      removeEventListener() {},
+    };
+    Object.defineProperty(window, "visualViewport", {
+      configurable: true,
+      value: fake,
+    });
+  });
+  await mockBoard(page, [OWNED]);
+  await page.goto("/e2e");
+  await page.getByRole("button", { name: "עריכה" }).click();
+  const dialog = page.getByRole("dialog");
+  await expect(dialog).toBeVisible();
+  const box = await dialog.boundingBox();
+  expect(box).toBeTruthy();
+  expect((box?.y ?? 0) + (box?.height ?? 0)).toBeLessThanOrEqual(390);
+  await expect(dialog.getByLabel("השם שלכם")).toBeInViewport();
+  await expect(dialog.getByRole("button", { name: "שמירה" })).toBeInViewport();
+  await expect(dialog.getByRole("button", { name: "שחרור" })).toBeInViewport();
 });
 
 test("visitor cannot see another claimant's edit control", async ({ page }) => {

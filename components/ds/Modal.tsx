@@ -1,3 +1,5 @@
+"use client";
+
 import type { CSSProperties, ReactNode } from "react";
 import {
   Dialog,
@@ -6,6 +8,7 @@ import {
   ModalOverlay,
 } from "react-aria-components";
 import { Button } from "@/components/ds/Button";
+import { useVisualViewportFrame } from "@/lib/visual-viewport";
 
 export function Modal({
   isOpen,
@@ -22,15 +25,21 @@ export function Modal({
   style?: CSSProperties;
   children: ReactNode | ((opts: { close: () => void }) => ReactNode);
 }) {
+  const frame = useVisualViewportFrame();
+
   return (
     <ModalOverlay
       isOpen={isOpen}
       onOpenChange={onOpenChange}
       isDismissable
-      className="fixed inset-0 z-50 flex items-end justify-center overflow-y-auto bg-[rgb(15_31_51/0.58)] p-2 backdrop-blur-[2px] sm:items-center sm:p-5"
-      style={style}
+      className="fixed right-0 left-0 z-50 flex items-end justify-center overflow-hidden bg-[rgb(15_31_51/0.58)] p-2 backdrop-blur-[2px] sm:items-center sm:p-5"
+      style={{
+        ...style,
+        top: frame.offsetTop,
+        height: frame.height || "100dvh",
+      }}
     >
-      <RacModal className="flex max-h-[calc(100dvh-1rem)] w-full max-w-[520px] overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--card)] text-[var(--text)] shadow-[0_18px_55px_rgba(15,31,51,0.3)] outline-none sm:max-h-[min(90dvh,740px)]">
+      <RacModal className="flex max-h-full w-full max-w-[520px] overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--card)] text-[var(--text)] shadow-[0_18px_55px_rgba(15,31,51,0.3)] outline-none sm:max-h-[min(90dvh,740px)]">
         <Dialog className="relative flex min-h-0 flex-1 flex-col outline-none">
           {({ close }) => (
             <div className="flex min-h-0 flex-1 flex-col">
@@ -64,7 +73,17 @@ export function Modal({
                   </svg>
                 </Button>
               </header>
-              <div className="ds-modal-scroll min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 py-5 sm:px-6">
+              <div
+                className="ds-modal-scroll min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 py-5 sm:px-6"
+                onFocusCapture={(event) => {
+                  const target = event.target;
+                  if (target instanceof HTMLElement) {
+                    requestAnimationFrame(() => {
+                      target.scrollIntoView({ block: "center", inline: "nearest" });
+                    });
+                  }
+                }}
+              >
                 {typeof children === "function" ? children({ close }) : children}
               </div>
             </div>
