@@ -113,7 +113,7 @@ export function ClaimDialog({
 
           <div className="sticky bottom-0 z-10 -mx-5 flex flex-wrap justify-between gap-2 border-t border-[var(--border)] bg-white px-5 py-4 sm:-mx-6 sm:px-6">
             <Button
-              variant="confirm"
+              variant="primary"
               type="submit"
               isDisabled={submitting}
             >
