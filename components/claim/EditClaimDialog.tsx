@@ -56,9 +56,7 @@ export function EditClaimDialog({
             שחרור מחזיר את המסכת לרשימה הפתוחה. השם החדש יופיע מיד על הלוח.
           </Callout>
 
-          <div aria-hidden="true" className="h-2 shrink-0" />
-
-          <div className="sticky bottom-0 z-10 -mx-5 -mb-5 flex flex-wrap justify-between gap-2 border-t border-[var(--border)] bg-white px-5 py-4 sm:-mx-6 sm:px-6">
+          <div className="sticky bottom-0 z-10 -mx-5 flex flex-wrap justify-between gap-2 border-t border-[var(--border)] bg-white px-5 py-4 sm:-mx-6 sm:px-6">
             <div className="flex flex-wrap gap-2">
               <Button variant="confirm" type="submit" isDisabled={submitting || !name.trim()}>
                 {submitting ? "שומר…" : "שמירה"}

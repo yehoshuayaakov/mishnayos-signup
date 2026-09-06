@@ -32,7 +32,7 @@ export function Modal({
       isOpen={isOpen}
       onOpenChange={onOpenChange}
       isDismissable
-      className="fixed right-0 left-0 z-50 flex items-end justify-center overflow-hidden bg-[rgb(15_31_51/0.58)] p-2 backdrop-blur-[2px] sm:items-center sm:p-5"
+      className="fixed right-0 left-0 z-50 flex items-end justify-center overflow-hidden bg-[rgb(15_31_51/0.58)] px-2 pt-2 pb-0 backdrop-blur-[2px] sm:items-center sm:p-5"
       style={{
         ...style,
         top: frame.offsetTop,
@@ -74,7 +74,7 @@ export function Modal({
                 </Button>
               </header>
               <div
-                className="ds-modal-scroll min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 py-5 sm:px-6"
+                className="ds-modal-scroll min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 pt-5 pb-0 sm:px-6"
                 onFocusCapture={(event) => {
                   const target = event.target;
                   if (target instanceof HTMLElement) {
