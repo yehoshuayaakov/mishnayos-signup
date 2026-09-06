@@ -39,6 +39,17 @@ const CLAIM_ERRORS: Record<string, string> = {
   reminders_unavailable: "התזכורות אינן זמינות כרגע.",
 };
 
+function splitCampaignInstructions(instructions: string) {
+  const marker = "לשאלות או לתיקונים:";
+  const raw = instructions.trim();
+  const idx = raw.indexOf(marker);
+  if (idx === -1) return { lead: raw, support: "" };
+  return {
+    lead: raw.slice(0, idx).replace(/[.\s]+$/u, "").trim(),
+    support: raw.slice(idx).trim(),
+  };
+}
+
 function emptyReminder(): ReminderForm {
   return {
     want: false,
@@ -62,6 +73,9 @@ export default function CampaignClient({
 }) {
   const slug = campaign.slug;
   const hasDeadline = Boolean(campaign.deadline_at);
+  const { lead: instructionLead, support: supportLine } = splitCampaignInstructions(
+    campaign.instructions
+  );
   const theme = themeStyle(campaign.theme);
   const [tractates, setTractates] = useState<Tractate[] | null>(null);
   const [loadError, setLoadError] = useState(false);
@@ -272,8 +286,9 @@ export default function CampaignClient({
           />
           <h1>{campaign.in_memory_of}</h1>
           {campaign.subtitle && <p className="hero-subtitle">{campaign.subtitle}</p>}
-          {campaign.instructions && <p className="hero-instructions">{campaign.instructions}</p>}
+          {instructionLead && <p className="hero-instructions">{instructionLead}</p>}
           {campaign.deadline && <p className="hero-deadline">{campaign.deadline}</p>}
+          {supportLine && <p className="hero-support">{supportLine}</p>}
         </div>
       </div>
 
