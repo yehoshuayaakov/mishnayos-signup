@@ -287,7 +287,11 @@ export default function CampaignClient({
           />
           <h1>{campaign.in_memory_of}</h1>
           {campaign.subtitle && <p className="hero-subtitle">{campaign.subtitle}</p>}
-          {instructionLead && <p className="hero-instructions">{instructionLead}</p>}
+          {instructionLead && (
+            <p className="hero-instructions" dir="auto">
+              {instructionLead}
+            </p>
+          )}
           {campaign.deadline && <p className="hero-deadline">{campaign.deadline}</p>}
           {supportLine && <p className="hero-support">{supportLine}</p>}
         </div>

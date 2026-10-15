@@ -89,6 +89,8 @@ Then share `/name-slug`. Avoid reserved slugs (`api`, `admin`, `reminders`, etc.
 
 For the Biala Ostrova release, run `supabase/create-biala-ostrova-rebbe.sql` in the Supabase SQL Editor. It is idempotent: if that slug already exists, it reports the existing campaign without overwriting it. After verifying 64 tractates, set `DEFAULT_CAMPAIGN=biala-ostrova-rebbe` in Vercel.
 
+For Avraham Baruch Silver, run `supabase/create-avraham-baruch-silver.sql`. It is idempotent and does not replace an existing row. The page is `/avraham-baruch-silver`, with English claim instructions, the forest theme, the candle fallback, and no deadline. Reminders stay hidden while `ENABLE_EMAIL_REMINDERS` is false.
+
 To set or fix a deadline on an existing campaign:
 
 ```sql
