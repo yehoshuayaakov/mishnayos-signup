@@ -12,7 +12,7 @@ begin
       'חלוקת משניות',
       'כ"ק האדמו"ר מביאלא אוסטרובא רבי אברהם ירחמיאל בן הרה"ק דוד מתתיהו זצ"ל',
       'נלב"ע ח"י אלול תשפ"ו',
-      'לחצו על מסכת פנויה כדי לקבל אותה על עצמכם. לשאלות או לתיקונים: yehoshuayaakov@gmail.com',
+      'לחצו על מסכת פנויה כדי לקבל אותה על עצמכם',
       '/biala-ostrova-rebbe.jpg',
       'navy',
       'נא לסיים עד י"ט תשרי תשפ"ז',
@@ -20,10 +20,16 @@ begin
       'Asia/Jerusalem'
     );
   else
-    raise notice 'Campaign biala-ostrova-rebbe already exists; no changes made.';
+    raise notice 'Campaign biala-ostrova-rebbe already exists; instructions are cleaned below.';
   end if;
 end
 $campaign$;
+
+-- Support contact is page chrome. Remove it from instructions saved before that change.
+update public.campaigns
+set instructions = 'לחצו על מסכת פנויה כדי לקבל אותה על עצמכם'
+where slug = 'biala-ostrova-rebbe'
+  and instructions = 'לחצו על מסכת פנויה כדי לקבל אותה על עצמכם. לשאלות או לתיקונים: yehoshuayaakov@gmail.com';
 
 select
   c.id,

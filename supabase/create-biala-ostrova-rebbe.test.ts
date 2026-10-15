@@ -20,11 +20,12 @@ describe("Biala Ostrova campaign SQL", () => {
     expect(sql).toContain("'navy'");
   });
 
-  it("RISK-BIALA-004 includes only the approved temporary support address", () => {
-    expect(sql).toContain("yehoshuayaakov@gmail.com");
-    expect(sql.match(/[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}/gi)).toEqual([
-      "yehoshuayaakov@gmail.com",
-    ]);
+  it("RISK-BIALA-004 keeps the support address out of stored campaign content", () => {
+    expect(sql).toContain("'לחצו על מסכת פנויה כדי לקבל אותה על עצמכם'");
+    expect(sql.match(/yehoshuayaakov@gmail\.com/g)).toEqual(["yehoshuayaakov@gmail.com"]);
+    expect(sql).toContain(
+      "instructions = 'לחצו על מסכת פנויה כדי לקבל אותה על עצמכם. לשאלות או לתיקונים: yehoshuayaakov@gmail.com'"
+    );
   });
 
   it("RISK-BIALA-005 stores the Jerusalem end-of-day deadline explicitly", () => {
