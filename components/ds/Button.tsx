@@ -1,5 +1,6 @@
 "use client";
 
+import type { ReactNode } from "react";
 import {
   Button as RacButton,
   type ButtonProps as RacButtonProps,
@@ -60,7 +61,7 @@ export function Button({
       ].join(" ")}
     >
       {isPending ? <Spinner /> : null}
-      {children}
+      {children as ReactNode}
     </RacButton>
   );
 }
