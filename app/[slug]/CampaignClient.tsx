@@ -5,6 +5,7 @@ import { ClaimDialog, type ReminderForm } from "@/components/claim/ClaimDialog";
 import { EditClaimDialog } from "@/components/claim/EditClaimDialog";
 import { Banner } from "@/components/ds/Banner";
 import { Button } from "@/components/ds/Button";
+import { Spinner } from "@/components/ds/Spinner";
 import type { Campaign } from "@/lib/campaign";
 import {
   claimFieldErrors,
@@ -23,6 +24,12 @@ type Tractate = {
   claimed_by: string | null;
   can_edit: boolean;
   edit_until: string | null;
+};
+
+type PendingUpdate = {
+  id: number;
+  action: "claim" | "rename" | "release";
+  name: string;
 };
 
 const SEDER_ORDER = ["זרעים", "מועד", "נשים", "נזיקין", "קדשים", "טהרות"];
@@ -73,6 +80,7 @@ export default function CampaignClient({
   const [nameInput, setNameInput] = useState("");
   const [reminder, setReminder] = useState(emptyReminder);
   const [submitting, setSubmitting] = useState(false);
+  const [pending, setPending] = useState<PendingUpdate | null>(null);
   const [claimError, setClaimError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<ClaimFieldErrors>({});
   const [message, setMessage] = useState<{ kind: "ok" | "err"; text: string; href?: string } | null>(
@@ -141,9 +149,11 @@ export default function CampaignClient({
     }
     const name = validation.data.name;
     setSubmitting(true);
+    setPending({ id: claiming.id, action: "claim", name });
     setMessage(null);
     setClaimError(null);
     setFieldErrors({});
+    let finished = false;
     try {
       const payload: Record<string, unknown> = { id: claiming.id, name };
       if (remindersAvailable && reminder.want) {
@@ -180,13 +190,15 @@ export default function CampaignClient({
             text: "תודה רבה! המסכת נרשמה על שמכם. תזכו למצוות!",
           });
         }
-        closeForms();
+        await load();
+        finished = true;
       } else if (res.status === 409) {
         setMessage({
           kind: "err",
           text: "המסכת הזו נתפסה זה עתה על ידי מישהו אחר. נא לבחור מסכת אחרת.",
         });
-        closeForms();
+        await load();
+        finished = true;
       } else {
         let code = "";
         try {
@@ -204,12 +216,15 @@ export default function CampaignClient({
         } else {
           setClaimError(CLAIM_ERRORS[code] ?? "אירעה שגיאה. נסו שוב בעוד רגע.");
         }
+        setPending(null);
       }
     } catch {
       setClaimError("אירעה שגיאה. בדקו את החיבור לאינטרנט ונסו שוב.");
+      setPending(null);
     } finally {
       setSubmitting(false);
-      load();
+      setPending(null);
+      if (finished) closeForms();
     }
   }
 
@@ -219,7 +234,9 @@ export default function CampaignClient({
     if (action === "rename" && !name) return;
 
     setSubmitting(true);
+    setPending({ id, action, name });
     setMessage(null);
+    let finished = false;
     try {
       const res = await fetch(`/api/campaigns/${slug}/edit`, {
         method: "POST",
@@ -231,18 +248,23 @@ export default function CampaignClient({
           kind: "ok",
           text: action === "release" ? "המסכת שוחררה וזמינה שוב." : "השם עודכן בהצלחה.",
         });
-        closeForms();
+        await load();
+        finished = true;
       } else if (res.status === 403) {
-        closeForms();
         setMessage({ kind: "err", text: "חלון העריכה של 15 הדקות הסתיים." });
+        await load();
+        finished = true;
       } else {
         setMessage({ kind: "err", text: "אירעה שגיאה. נסו שוב." });
+        setPending(null);
       }
     } catch {
       setMessage({ kind: "err", text: "אירעה שגיאה. בדקו את החיבור לאינטרנט ונסו שוב." });
+      setPending(null);
     } finally {
       setSubmitting(false);
-      load();
+      setPending(null);
+      if (finished) closeForms();
     }
   }
 
@@ -261,7 +283,7 @@ export default function CampaignClient({
   const pct = total ? Math.round((claimed / total) * 100) : 0;
 
   return (
-    <div className="campaign-root" style={theme}>
+    <div className="campaign-root campaign-board" style={theme}>
       <div className="hero">
         <div className="hero-inner">
           {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -329,17 +351,27 @@ export default function CampaignClient({
                   </span>
                 </div>
                 <ul className="tractate-list">
-                  {items.map((t) => (
+                  {items.map((t) => {
+                    const rowPending = pending?.id === t.id ? pending : null;
+                    return (
                     <li
                       key={t.id}
                       className={t.claimed_by ? "row row-taken" : "row"}
+                      aria-busy={rowPending ? true : undefined}
                     >
                       <div className="t-info">
                         <span className="t-name">{t.name}</span>
                         <span className="t-chapters">{t.chapters} פרקים</span>
                       </div>
                       <div className="t-status">
-                        {t.claimed_by ? (
+                        {rowPending ? (
+                          <span className="chip-pending" role="status">
+                            <Spinner />
+                            {rowPending.action === "release"
+                              ? "משחרר…"
+                              : `שומר… ${rowPending.name}`}
+                          </span>
+                        ) : t.claimed_by ? (
                           <div className="taken-wrap">
                             <span className="chip-taken">
                               <svg viewBox="0 0 16 16" width="13" height="13" aria-hidden="true">
@@ -389,13 +421,18 @@ export default function CampaignClient({
                         )}
                       </div>
                     </li>
-                  ))}
+                    );
+                  })}
                 </ul>
               </section>
             );
           })}
 
-        <footer className="footer">תהא נשמתו צרורה בצרור החיים</footer>
+        <footer className="footer">
+          {campaign.slug === "rivkah-silver"
+            ? "תהא נשמתה צרורה בצרור החיים"
+            : "תהא נשמתו צרורה בצרור החיים"}
+        </footer>
       </main>
 
       <ClaimDialog
@@ -435,6 +472,9 @@ export default function CampaignClient({
         name={nameInput}
         onNameChange={setNameInput}
         submitting={submitting}
+        pendingAction={
+          pending?.action === "rename" || pending?.action === "release" ? pending.action : null
+        }
         style={theme}
         onRename={() => {
           if (editing) submitEdit(editing.id, "rename");

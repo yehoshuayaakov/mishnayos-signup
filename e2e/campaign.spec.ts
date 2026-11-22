@@ -72,6 +72,48 @@ test("claim a free slot and see the name on the board", async ({ page }) => {
   await expect(page.getByText("תודה רבה! המסכת נרשמה על שמכם")).toBeVisible();
 });
 
+test("claim shows a saving state until the tractate row updates", async ({ page }) => {
+  let claimed = false;
+  let releaseClaim = () => {};
+  const gate = new Promise<void>((resolve) => {
+    releaseClaim = resolve;
+  });
+  await page.route("**/api/campaigns/*/state", async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        tractates: [
+          claimed
+            ? { ...OPEN, claimed_by: "שרה", can_edit: true, edit_until: "2099-01-01T00:00:00.000Z" }
+            : OPEN,
+          TAKEN,
+        ],
+      }),
+    });
+  });
+  await page.route("**/api/campaigns/*/claim", async (route) => {
+    await gate;
+    claimed = true;
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({ ok: true }),
+    });
+  });
+  await page.goto("/e2e");
+  await page.getByRole("button", { name: "לקבלת המסכת" }).click();
+  const dialog = page.getByRole("dialog");
+  await dialog.getByLabel("השם שלכם (חובה)").fill("שרה");
+  await dialog.getByRole("button", { name: "קבלת המסכת" }).click();
+  await expect(dialog.getByRole("button", { name: "שומר…" })).toBeVisible();
+  await expect(page.getByRole("status")).toHaveText("שומר… שרה");
+  await expect(dialog.getByRole("button", { name: "סגירת חלון" })).toBeDisabled();
+  releaseClaim();
+  await expect(dialog).toBeHidden();
+  await expect(page.getByText("שרה", { exact: true })).toBeVisible();
+});
+
 test("duplicate claim shows the already-taken message", async ({ page }) => {
   await page.route("**/api/campaigns/*/claim", async (route) => {
     await route.fulfill({
@@ -124,11 +166,11 @@ test("claim dialog stays usable at phone widths", async ({ page }) => {
   }
 });
 
-test("AC-BIALA-006 root redirects to the configured campaign", async ({ page }) => {
-  await mockBoard(page, [OPEN]);
+test("AC-PCC-001 root displays the platform dashboard", async ({ page }) => {
   await page.goto("/");
-  await expect(page).toHaveURL(/\/e2e$/);
-  await expect(page.getByRole("heading", { name: "בדיקת מערכת" })).toBeVisible();
+  await expect(page).toHaveURL("/");
+  await expect(page.getByRole("heading", { name: "כל החלוקות" })).toBeVisible();
+  await expect(page.getByText("1 מתוך 64 מסכתות נרשמו ללימוד")).toBeVisible();
 });
 
 test("claimant edit is visible only to its capability and can release without a password", async ({
@@ -202,7 +244,7 @@ test("organizer editor stays usable at phone widths", async ({ page }) => {
   await page.goto("/admin/campaigns/1");
   await expect(page.getByRole("heading", { name: "פרטי החלוקה" })).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
-  await page.getByLabel("כותרת", { exact: true }).fill("כותרת חדשה");
+  await page.getByLabel("כותרת (חובה)", { exact: true }).fill("כותרת חדשה");
   await page.getByRole("button", { name: "שמירת פרטים" }).click();
   expect(saved).toBe(true);
   await expect(page.getByText("פרטי החלוקה נשמרו")).toBeVisible();

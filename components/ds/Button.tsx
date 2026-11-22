@@ -4,6 +4,7 @@ import {
   Button as RacButton,
   type ButtonProps as RacButtonProps,
 } from "react-aria-components";
+import { Spinner } from "@/components/ds/Spinner";
 
 const variants = {
   primary:
@@ -19,12 +20,23 @@ const variants = {
 
 export type ButtonVariant = keyof typeof variants;
 
+export function buttonClassName(variant: ButtonVariant = "primary") {
+  return `inline-flex min-h-11 items-center justify-center gap-2 rounded-full border px-4 py-2 text-sm font-semibold no-underline outline-none transition focus-visible:ring-3 focus-visible:ring-[rgb(46_89_132/0.18)] ${variants[variant]}`;
+}
+
 export function Button({
   variant = "primary",
   size = "md",
   className = "",
+  isPending = false,
+  isDisabled,
+  children,
   ...props
-}: RacButtonProps & { variant?: ButtonVariant; size?: "sm" | "md" | "lg" }) {
+}: RacButtonProps & {
+  variant?: ButtonVariant;
+  size?: "sm" | "md" | "lg";
+  isPending?: boolean;
+}) {
   const sizes = {
     sm: "min-h-8 px-2.5 py-1 text-[0.82rem]",
     md: "min-h-9 px-4 py-[7px] text-[0.9rem]",
@@ -34,14 +46,21 @@ export function Button({
   return (
     <RacButton
       {...props}
+      isDisabled={isPending || isDisabled}
+      aria-busy={isPending || undefined}
       className={[
         "inline-flex cursor-pointer appearance-none items-center justify-center gap-2 rounded-full border font-[inherit] font-semibold outline-none transition max-sm:min-h-11",
         "data-[focus-visible]:ring-3 data-[focus-visible]:ring-[rgb(46_89_132/0.18)]",
-        "data-[disabled]:cursor-default data-[disabled]:opacity-60",
+        isPending
+          ? "cursor-progress"
+          : "data-[disabled]:cursor-default data-[disabled]:opacity-60",
         sizes[size],
         variants[variant],
         className,
       ].join(" ")}
-    />
+    >
+      {isPending ? <Spinner /> : null}
+      {children}
+    </RacButton>
   );
 }

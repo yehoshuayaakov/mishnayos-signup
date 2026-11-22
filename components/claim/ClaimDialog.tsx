@@ -51,6 +51,7 @@ export function ClaimDialog({
     <Modal
       isOpen={isOpen}
       onOpenChange={onOpenChange}
+      isDismissable={!submitting}
       title={`קבלת מסכת ${tractateName}`}
       subtitle={`${chapters} פרקים · השלימו את הפרטים כדי לקבל את המסכת`}
       style={style}
@@ -115,7 +116,7 @@ export function ClaimDialog({
             <Button
               variant="primary"
               type="submit"
-              isDisabled={submitting}
+              isPending={submitting}
             >
               {submitting ? "שומר…" : "קבלת המסכת"}
             </Button>

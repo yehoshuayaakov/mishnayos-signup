@@ -13,6 +13,7 @@ export function EditClaimDialog({
   name,
   onNameChange,
   submitting,
+  pendingAction,
   style,
   onRename,
   onRelease,
@@ -23,6 +24,7 @@ export function EditClaimDialog({
   name: string;
   onNameChange: (value: string) => void;
   submitting: boolean;
+  pendingAction: "rename" | "release" | null;
   style?: CSSProperties;
   onRename: () => void;
   onRelease: () => void;
@@ -31,6 +33,7 @@ export function EditClaimDialog({
     <Modal
       isOpen={isOpen}
       onOpenChange={onOpenChange}
+      isDismissable={!submitting}
       title={`עריכת מסכת ${tractateName}`}
       subtitle="ניתן לערוך או לשחרר במשך 15 דקות לאחר הרישום"
       style={style}
@@ -58,16 +61,22 @@ export function EditClaimDialog({
 
           <div className="sticky bottom-0 z-10 -mx-5 flex flex-wrap justify-between gap-2 border-t border-[var(--border)] bg-white px-5 py-4 sm:-mx-6 sm:px-6">
             <div className="flex flex-wrap gap-2">
-              <Button variant="confirm" type="submit" isDisabled={submitting || !name.trim()}>
-                {submitting ? "שומר…" : "שמירה"}
+              <Button
+                variant="confirm"
+                type="submit"
+                isPending={pendingAction === "rename"}
+                isDisabled={submitting || !name.trim()}
+              >
+                {pendingAction === "rename" ? "שומר…" : "שמירה"}
               </Button>
               <Button
                 variant="danger"
                 type="button"
+                isPending={pendingAction === "release"}
                 isDisabled={submitting}
                 onPress={onRelease}
               >
-                שחרור
+                {pendingAction === "release" ? "משחרר…" : "שחרור"}
               </Button>
             </div>
             <Button variant="cancel" type="button" isDisabled={submitting} onPress={close}>

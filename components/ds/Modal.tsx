@@ -13,6 +13,7 @@ import { useVisualViewportFrame } from "@/lib/visual-viewport";
 export function Modal({
   isOpen,
   onOpenChange,
+  isDismissable = true,
   title,
   subtitle,
   style,
@@ -20,6 +21,7 @@ export function Modal({
 }: {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
+  isDismissable?: boolean;
   title: string;
   subtitle?: ReactNode;
   style?: CSSProperties;
@@ -31,7 +33,8 @@ export function Modal({
     <ModalOverlay
       isOpen={isOpen}
       onOpenChange={onOpenChange}
-      isDismissable
+      isDismissable={isDismissable}
+      isKeyboardDismissDisabled={!isDismissable}
       className="fixed right-0 left-0 z-50 flex items-end justify-center overflow-hidden bg-[rgb(15_31_51/0.58)] px-2 pt-2 pb-0 backdrop-blur-[2px] sm:items-center sm:p-5"
       style={{
         ...style,
@@ -59,6 +62,7 @@ export function Modal({
                   size="sm"
                   aria-label="סגירת חלון"
                   className="absolute top-3 left-3 h-11 w-11 border-transparent p-0 sm:top-5 sm:left-5 sm:h-8 sm:min-h-8 sm:w-8"
+                  isDisabled={!isDismissable}
                   onPress={close}
                 >
                   <svg
