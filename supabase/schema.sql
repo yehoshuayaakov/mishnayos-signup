@@ -33,6 +33,7 @@ create table campaigns (
   instructions text not null default '',
   photo_url text not null default '',
   theme text not null default 'navy',  -- color preset: navy | forest | burgundy | slate
+  gender text not null default 'masculine' check (gender in ('masculine', 'feminine')),
   is_active boolean not null default true,
   admin_token text,            -- reserved for future per-campaign admin links (unused for now)
   created_at timestamptz not null default now()

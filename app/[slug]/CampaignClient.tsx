@@ -6,7 +6,7 @@ import { EditClaimDialog } from "@/components/claim/EditClaimDialog";
 import { Banner } from "@/components/ds/Banner";
 import { Button } from "@/components/ds/Button";
 import { Spinner } from "@/components/ds/Spinner";
-import type { Campaign } from "@/lib/campaign";
+import { memorialFooter, type Campaign } from "@/lib/campaign";
 import {
   claimFieldErrors,
   claimFormSchema,
@@ -428,11 +428,7 @@ export default function CampaignClient({
             );
           })}
 
-        <footer className="footer">
-          {campaign.slug === "rivkah-silver"
-            ? "תהא נשמתה צרורה בצרור החיים"
-            : "תהא נשמתו צרורה בצרור החיים"}
-        </footer>
+        <footer className="footer">{memorialFooter(campaign.gender)}</footer>
       </main>
 
       <ClaimDialog
