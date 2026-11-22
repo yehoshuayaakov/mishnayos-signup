@@ -67,6 +67,7 @@ export function ClaimDialog({
         >
           <TextField
             label="השם שלכם (חובה)"
+            autoComplete="name"
             value={name}
             onChange={onNameChange}
             maxLength={60}
