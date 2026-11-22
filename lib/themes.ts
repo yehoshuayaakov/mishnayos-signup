@@ -3,6 +3,7 @@ import type { CSSProperties } from "react";
 // Per-campaign color presets. Each theme overrides the primary "navy" ramp
 // (used by the hero gradient, buttons, and headings) via CSS custom properties
 // on a wrapper element. The gold accent stays consistent across themes.
+// Burgundy also warms the page wash; other themes keep the shared cool grey.
 export const THEME_NAMES = ["navy", "forest", "burgundy", "slate"] as const;
 export type ThemeName = (typeof THEME_NAMES)[number];
 
@@ -20,6 +21,11 @@ const THEMES: Record<ThemeName, Record<string, string>> = {
     "--navy-800": "#37151f",
     "--navy-700": "#52202d",
     "--navy-600": "#743142",
+    "--bg": "#fefcf8",
+    "--bg-deep": "#e7d9cc",
+    background: "linear-gradient(180deg, var(--bg) 0%, var(--bg-deep) 100%)",
+    backgroundAttachment: "fixed",
+    minHeight: "100vh",
   },
   slate: {
     "--navy-900": "#1a212a",
