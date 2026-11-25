@@ -166,11 +166,11 @@ test("claim dialog stays usable at phone widths", async ({ page }) => {
   }
 });
 
-test("AC-PCC-001 root displays the platform dashboard", async ({ page }) => {
+test("AC-BIALA-006 root redirects to the configured campaign", async ({ page }) => {
+  await mockBoard(page, [OPEN]);
   await page.goto("/");
-  await expect(page).toHaveURL("/");
-  await expect(page.getByRole("heading", { name: "כל החלוקות" })).toBeVisible();
-  await expect(page.getByText("1 מתוך 64 מסכתות נרשמו ללימוד")).toBeVisible();
+  await expect(page).toHaveURL("/e2e");
+  await expect(page.getByRole("heading", { name: "בדיקת מערכת" })).toBeVisible();
 });
 
 test("claimant edit is visible only to its capability and can release without a password", async ({
@@ -244,7 +244,7 @@ test("organizer editor stays usable at phone widths", async ({ page }) => {
   await page.goto("/admin/campaigns/1");
   await expect(page.getByRole("heading", { name: "פרטי החלוקה" })).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
-  await page.getByLabel("כותרת (חובה)", { exact: true }).fill("כותרת חדשה");
+  await page.getByLabel("כותרת", { exact: true }).fill("כותרת חדשה");
   await page.getByRole("button", { name: "שמירת פרטים" }).click();
   expect(saved).toBe(true);
   await expect(page.getByText("פרטי החלוקה נשמרו")).toBeVisible();
